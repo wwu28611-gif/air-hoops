@@ -88,6 +88,7 @@ canvas.layer{position:fixed;inset:0;width:100%;height:100%;display:block;pointer
     <button class="btn" id="bfree" type="button">開鏡頭 · 自由練習</button>
     <div id="msg"></div>
     <div id="best"></div>
+    <div style="font-size:12px;opacity:.5;margin-top:8px">版本 v5 · 食指版</div>
   </div>
 </div>
 <div class="ov hide" id="end">
@@ -116,12 +117,12 @@ let distI=1,RIM=new T.Vector3(0,RIM_Y,-DISTS[1][0]),BOARD_Z=RIM.z-0.375;
 /* ===== layers ===== */
 const vid=$('vid'),bg=$('bg'),bx=bg.getContext('2d'),fg=$('fg'),fx=fg.getContext('2d');
 const ren=new T.WebGLRenderer({canvas:$('gl'),alpha:true,antialias:true});
-ren.setPixelRatio(Math.min(devicePixelRatio||1,2));ren.outputEncoding=T.sRGBEncoding;
+ren.setPixelRatio(Math.min(devicePixelRatio||1,1.5));ren.outputEncoding=T.sRGBEncoding;
 const scene=new T.Scene(),cam=new T.PerspectiveCamera(FOV,1,0.05,60);
 scene.add(new T.HemisphereLight(0xffffff,0x553322,1.0));
 const dl=new T.DirectionalLight(0xffffff,0.8);dl.position.set(2,4,3);scene.add(dl);
 let W=1,H=1,F=1,DPR=1;
-function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,2);
+function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,1.5);
   for(const c of [bg,fg]){c.width=W*DPR;c.height=H*DPR;c.getContext('2d').setTransform(DPR,0,0,DPR,0,0);}
   ren.setSize(W,H,false);cam.aspect=W/H;cam.fov=FOV;cam.updateProjectionMatrix();F=(H/2)/Math.tan(FOV*Math.PI/360);}
 addEventListener('resize',resize);resize();
@@ -368,25 +369,27 @@ async function openCam(){
   if(!window.isSecureContext||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('https');
   if(stream)stream.getTracks().forEach(x=>x.stop());
   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:camFace},width:{ideal:1280},height:{ideal:720}},audio:false});
-  vid.srcObject=stream;await vid.play();lastVT=-1;
+  vid.srcObject=stream;try{await Promise.race([vid.play(),new Promise(r=>setTimeout(r,3000))])}catch(e){}lastVT=-1;
 }
 async function loadLM(){
   if(lm)return;
+  for(let i=0;i<40&&!vision;i++)await new Promise(r=>setTimeout(r,250));
   if(!vision)throw new Error('vision');
   const fs=await vision.FilesetResolver.forVisionTasks(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${V}/wasm`);
   const o=d=>({baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:d},runningMode:'VIDEO',numHands:1,minHandDetectionConfidence:.5,minTrackingConfidence:.5});
-  try{lm=await vision.HandLandmarker.createFromOptions(fs,o('GPU'))}catch(e){lm=await vision.HandLandmarker.createFromOptions(fs,o('CPU'))}
+  const tmo=(p,ms)=>Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),ms))]);
+  try{lm=await tmo(vision.HandLandmarker.createFromOptions(fs,o('GPU')),8000)}catch(e){msg('改用相容模式載入中…');lm=await tmo(vision.HandLandmarker.createFromOptions(fs,o('CPU')),25000)}
 }
 async function begin(mode){
   audio();msg('開啟鏡頭中…');
   try{await openCam()}catch(e){msg(e.message==='https'?'鏡頭需要 https 網址才能開。':'無法開啟鏡頭，請在瀏覽器允許相機權限。');return;}
   msg('載入手部辨識中…（第一次約 5–10 秒）');
-  try{await loadLM()}catch(e){msg(e.message==='vision'?'手部辨識模組還在載入，請稍等再按一次。':'手部辨識啟動失敗，這支手機可能不支援。');return;}
+  try{await loadLM()}catch(e){msg(e.message==='vision'?'手部辨識模組下載失敗，請確認網路後重新整理。':'手部辨識啟動失敗（'+e.message+'），請重新整理再試一次。');return;}
   msg('');camOn=true;
   Object.assign(st,{mode,run:true,score:0,made:0,shots:0,streak:0,time:60,phase:'idle'});B.s='none';hud();
   $('tlab').textContent=mode==='60'?'剩餘秒數':'練習';
   $('start').classList.add('hide');$('end').classList.add('hide');
-  try{if(document.documentElement.requestFullscreen&&!document.fullscreenElement)await document.documentElement.requestFullscreen({navigationUI:'hide'})}catch(e){}
+  try{if(document.documentElement.requestFullscreen&&!document.fullscreenElement)document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{})}catch(e){}
 }
 function endGame(){
   st.run=false;sfx.buzz();

@@ -200,7 +200,7 @@ function dribble(){B.s='free';B.fromDrib=true;B.v.set(hand.v.x*.5,Math.min(-2.2,
 function shoot(k,lat){
   const P=B.p.clone(),Hd=new T.Vector3(RIM.x-P.x,0,RIM.z-P.z),D=Hd.length();Hd.normalize();
   const h=RIM_Y-P.y,al=Math.atan(Math.tan(50*Math.PI/180)+2*h/D),c=Math.cos(al);
-  let v=Math.sqrt(G*D*D/(2*c*c*(D*Math.tan(al)-h)));v*=1+(k-1)*.1;
+  let v=Math.sqrt(G*D*D/(2*c*c*(D*Math.tan(al)-h)));v*=1+(k-1)*.085;
   Hd.applyAxisAngle(new T.Vector3(0,1,0),-lat);
   B.v.copy(Hd).multiplyScalar(v*c).setY(v*Math.sin(al));
   B.ax.crossVectors(Hd,new T.Vector3(0,1,0)).normalize();B.w=-14;
@@ -258,8 +258,8 @@ function handFromScreen(S){
   const np=unproj(cx,cy,depth);
   if(hand.ok)np.z=hand.p.z*.7+np.z*.3;
   hand.p.copy(np);hand.ok=true;
-  hand.hist.push({t:now,x:np.x,y:np.y});while(hand.hist.length&&now-hand.hist[0].t>120)hand.hist.shift();
-  if(hand.hist.length>=3){const a=hand.hist[0],b=hand.hist[hand.hist.length-1],dt=(b.t-a.t)/1000;if(dt>.03){const vx=(b.x-a.x)/dt,vy=(b.y-a.y)/dt;if(Math.hypot(vx,vy)<7)hand.v.set(vx,vy,0);else{hand.hist=[b];hand.v.set(0,0,0);}}}
+  hand.hist.push({t:now,x:np.x,y:np.y});while(hand.hist.length>2&&now-hand.hist[0].t>130)hand.hist.shift();
+  if(hand.hist.length>=2){const a=hand.hist[0],b=hand.hist[hand.hist.length-1],dt=(b.t-a.t)/1000;if(dt>.025){const vx=(b.x-a.x)/dt,vy=(b.y-a.y)/dt;if(Math.hypot(vx,vy)<7)hand.v.set(vx,vy,0);else{hand.hist=[b];hand.v.set(0,0,0);}}}
   gestures();
 }
 function gestures(){
@@ -276,7 +276,7 @@ function gestures(){
     if(up>st.peak){st.peak=up;st.peakVx=hand.v.x;}
     gauge(st.peak/IDEAL);
     if(up<st.peak*.5||st.now-st.riseT>.4){
-      if(B.s==='held')shoot(Math.max(.4,Math.min(2,st.peak/IDEAL)),Math.atan2(st.peakVx,st.peak)*.45);
+      if(B.s==='held')shoot(Math.max(.4,Math.min(2,st.peak/IDEAL)),Math.atan2(st.peakVx,st.peak)*.3);
       st.phase='idle';gauge(null);st.cd=.6;
     }
   }

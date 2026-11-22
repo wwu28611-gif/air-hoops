@@ -152,7 +152,7 @@ const pole=new T.Mesh(new T.CylinderGeometry(.06,.08,1,12),new T.MeshStandardMat
 function layoutHoop(){
   // the hoop stands far away in the room, centered and high on the screen
   const Zh=body.Zp+HOOP_BACK;
-  const p=unproj(W/2,Math.max(60,H*.12),Zh);
+  const p=unproj(W/2,Math.max(80,H*.22),Zh);
   if(!rimReady){rim.copy(p);rimReady=true;}else rim.lerp(p,.05);
   BOARD_Z=rim.z-0.375;
   rimM.position.copy(rim);net.position.copy(rim);
@@ -220,7 +220,7 @@ function respawn(){
 function dribble(){const h=hands[B.hand];B.s='free';B.fromDrib=true;B.v.set(h.vx*.4,Math.min(-2.4,h.vy*1.35),0);B.ax.set(1,0,0);B.w=-10;}
 function shoot(k,lat){
   const P=B.p.clone(),Hd=new T.Vector3(rim.x-P.x,0,rim.z-P.z),D=Math.max(.3,Hd.length());Hd.normalize();
-  const h=rim.y-P.y,al=Math.atan(Math.tan(50*Math.PI/180)+2*h/D),c=Math.cos(al);
+  const h=rim.y-P.y,al=Math.atan(Math.tan(44*Math.PI/180)+2*h/D),c=Math.cos(al);
   let v=Math.sqrt(G*D*D/Math.max(.01,2*c*c*(D*Math.tan(al)-h)));
   v*=1+(k-1)*.15;
   Hd.applyAxisAngle(new T.Vector3(0,1,0),-lat);

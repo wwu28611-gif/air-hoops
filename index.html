@@ -245,7 +245,10 @@ function detect(){
   const L=r&&r.landmarks&&r.landmarks[0];
   if(!L){if(hand.ok)hand.lostAt=st.now;hand.ok=false;hand.lm=null;hand.hist=[];return;}
   calcCover();
-  const S=L.map(toS);hand.lm=S;
+  handFromScreen(L.map(toS),now);
+}
+function handFromScreen(S,now){
+  hand.lm=S;
   const d=(a,b)=>Math.hypot(S[a][0]-S[b][0],S[a][1]-S[b][1]);
   const size=Math.max(d(0,9),d(5,17)*1.3);
   let cx=0,cy=0;for(const i of [0,5,9,13,17]){cx+=S[i][0];cy+=S[i][1];}cx/=5;cy/=5;
@@ -336,6 +339,16 @@ function frame(t){
   else if(B.s==='fly')hint('…');
 }
 requestAnimationFrame(frame);
+
+/* ===== test hook: fake hand (no camera) ===== */
+function fakeLM(cx,cy,sz){const P=[[0,.5],[-.25,.35],[-.4,.15],[-.5,-.05],[-.6,-.2],[-.35,-.45],[-.38,-.75],[-.4,-.95],[-.42,-1.1],[-.05,-.5],[-.06,-.85],[-.07,-1.05],[-.08,-1.2],[.22,-.45],[.24,-.78],[.25,-.98],[.26,-1.1],[.42,-.35],[.46,-.6],[.48,-.75],[.5,-.88]];return P.map(p=>[cx+p[0]*sz,cy+p[1]*sz]);}
+window.__AH={
+  start(mode){camOn=true;Object.assign(st,{mode:mode||'free',run:true,score:0,made:0,shots:0,streak:0,time:60,phase:'idle'});B.s='none';hud();$('start').classList.add('hide');},
+  hand(cx,cy,sz){handFromScreen(fakeLM(cx,cy,sz),performance.now());},
+  lose(){if(hand.ok)hand.lostAt=st.now;hand.ok=false;hand.lm=null;hand.hist=[];},
+  dist(i){distI=i;placeHoop();},
+  info(){return {W,H,F,PALM,s:B.s,score:st.score,made:st.made,shots:st.shots,phase:st.phase,bp:B.p.toArray().map(v=>+v.toFixed(3)),hp:hand.p.toArray().map(v=>+v.toFixed(3)),hv:hand.v.toArray().map(v=>+v.toFixed(2)),lastDrib:st.lastDrib,now:st.now,sens:sens()};}
+};
 
 /* ===== camera ===== */
 async function openCam(){

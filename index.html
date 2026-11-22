@@ -206,7 +206,7 @@ function shoot(k,lat){
   const P=B.p.clone(),Hd=new T.Vector3(rim.x-P.x,0,rim.z-P.z),D=Math.max(.3,Hd.length());Hd.normalize();
   const h=rim.y-P.y,al=Math.atan(Math.tan(50*Math.PI/180)+2*h/D),c=Math.cos(al);
   let v=Math.sqrt(G*D*D/Math.max(.01,2*c*c*(D*Math.tan(al)-h)));
-  v*=1+(k-1)*.4;
+  v*=1+(k-1)*.6;
   Hd.applyAxisAngle(new T.Vector3(0,1,0),-lat);
   B.v.copy(Hd).multiplyScalar(v*c).setY(v*Math.sin(al));
   B.ax.crossVectors(Hd,new T.Vector3(0,1,0)).normalize();B.w=-14;
@@ -228,7 +228,7 @@ function step(dt){
   if(dl<BR+TUBE){const n=d.divideScalar(dl||1e-6);p.copy(q).addScaledVector(n,BR+TUBE);const vn=v.dot(n);
     if(vn<0){v.addScaledVector(n,-1.55*vn);v.multiplyScalar(.92);if(-vn>.6&&st.ccd<=0){sfx.clank();st.ccd=.08;}}st.tRim=true;}
   // backboard: between the rim and the phone, the ball travels toward it (+z)
-  if(p.z+BR>BOARD_Z&&p.z<BOARD_Z+.15&&Math.abs(p.x-rim.x)<.95&&p.y>rim.y-.2&&p.y<rim.y+.85){p.z=BOARD_Z-BR;if(v.z>0){if(v.z>.8)sfx.board();v.z=-v.z*.6;v.x*=.85;v.y*=.85;}st.tBoard=true;}
+  if(p.z+BR>BOARD_Z&&p.z<BOARD_Z+.15&&Math.abs(p.x-rim.x)<.95&&p.y>rim.y-.2&&p.y<rim.y+.85){p.z=BOARD_Z-BR;if(v.z>0){if(v.z>.8)sfx.board();v.z=-v.z*.45;v.x*=.85;v.y*=.85;}st.tBoard=true;}
   const r2=Math.hypot(hx,hz);
   if(p.y<rim.y&&p.y>rim.y-.45&&r2<.24){v.x*=1-6*dt;v.z*=1-6*dt;v.y*=1-2.5*dt;if(r2>.12){p.x-=hx*3*dt;p.z-=hz*3*dt;}}
   if(B.s==='fly'&&py>=rim.y&&p.y<rim.y&&v.y<0&&!st.cross)st.cross=[+hx.toFixed(3),+hz.toFixed(3)];

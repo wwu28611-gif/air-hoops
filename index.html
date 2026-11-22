@@ -78,16 +78,16 @@ canvas.layer{position:fixed;inset:0;width:100%;height:100%;display:block;pointer
     <h1>空氣投籃 <span>全身版</span></h1>
     <p>把手機立在地上或架子上，自拍鏡頭對著你，退後 2–3 步讓頭到腳都入鏡。</p>
     <ul class="how">
-      <li><svg viewBox="0 0 48 48"><circle cx="24" cy="8" r="5" fill="#fff"/><path d="M24 14v16M24 30l-7 14M24 30l7 14M24 19l-10 7M24 19l9 -6" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="36" cy="10" r="5" fill="#ff5a1f"/></svg><div><b>全身入鏡</b>：籃框就在你正前方的上空。舉起一隻手，球就會黏在那隻手上。</div></li>
+      <li><svg viewBox="0 0 48 48"><circle cx="24" cy="8" r="5" fill="#fff"/><path d="M24 14v16M24 30l-7 14M24 30l7 14M24 19l-10 7M24 19l9 -6" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="36" cy="10" r="5" fill="#ff5a1f"/></svg><div><b>全身入鏡</b>：籃框立在你正前方的遠處。舉起一隻手，球就會黏在那隻手上。</div></li>
       <li><svg viewBox="0 0 48 48"><circle cx="24" cy="12" r="7" fill="#ff5a1f"/><path d="M24 22v14M17 30l7 7 7-7" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 44h28" stroke="#fff8" stroke-width="3" stroke-linecap="round"/></svg><div><b>手往下拍</b>：運球。球彈回來時把手放回原處就接住，可以一直運。</div></li>
-      <li><svg viewBox="0 0 48 48"><path d="M24 42V12M14 21l10-10 10 10" stroke="#3ee07a" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>手快速往上推過頭</b>：投籃，球會朝你正前方的籃框飛。推的速度決定力道，看下方力道條。運球後馬上投 = 急停跳投 +1。</div></li>
+      <li><svg viewBox="0 0 48 48"><path d="M24 42V12M14 21l10-10 10 10" stroke="#3ee07a" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>手快速往上推過頭</b>：投籃，把球丟向遠方的籃框。推的速度決定力道，看下方力道條。運球後馬上投 = 急停跳投 +1。</div></li>
     </ul>
     <div class="row"><span>力道靈敏度</span><input type="range" id="sens" min="0.5" max="2" step="0.05" value="1"></div>
     <button class="btn main" id="b60" type="button">開鏡頭 · 60 秒挑戰</button>
     <button class="btn" id="bfree" type="button">開鏡頭 · 自由練習</button>
     <div id="msg"></div>
     <div id="best"></div>
-    <div style="font-size:12px;opacity:.5;margin-top:8px">版本 v7 · 正前方籃框</div>
+    <div style="font-size:12px;opacity:.5;margin-top:8px">版本 v8 · 遠方籃框</div>
   </div>
 </div>
 <div class="ov hide" id="end">
@@ -134,9 +134,9 @@ const hoop=new T.Group();scene.add(hoop);
 const rimMat=new T.MeshStandardMaterial({color:0xff4a12,metalness:.4,roughness:.35,emissive:0x501400});
 const rimM=new T.Mesh(new T.TorusGeometry(RIM_R,0.018,10,48),rimMat);rimM.rotation.x=Math.PI/2;
 const boardG=new T.Group();
-boardG.add(new T.Mesh(new T.BoxGeometry(1.8,1.05,0.02),new T.MeshStandardMaterial({color:0xdff0ff,transparent:true,opacity:.22,roughness:.1,depthWrite:false})));
-const lm1=new T.LineBasicMaterial({color:0xffffff}),lm2=new T.LineBasicMaterial({color:0xff3b1f});
-const rect=(w,h,cy,m)=>new T.Line(new T.BufferGeometry().setFromPoints([[-1,-1],[1,-1],[1,1],[-1,1],[-1,-1]].map(p=>new T.Vector3(p[0]*w/2,cy+p[1]*h/2,0))),m);
+boardG.add(new T.Mesh(new T.BoxGeometry(1.8,1.05,0.02),new T.MeshStandardMaterial({color:0xf4f8ff,transparent:true,opacity:.85,roughness:.3})));
+const lm1=new T.LineBasicMaterial({color:0x222222}),lm2=new T.LineBasicMaterial({color:0xff3b1f});
+const rect=(w,h,cy,m)=>new T.Line(new T.BufferGeometry().setFromPoints([[-1,-1],[1,-1],[1,1],[-1,1],[-1,-1]].map(p=>new T.Vector3(p[0]*w/2,cy+p[1]*h/2,0.012))),m);
 boardG.add(rect(1.8,1.05,0,lm1),rect(0.59,0.45,-0.145,lm2));
 const brk=new T.Mesh(new T.BoxGeometry(0.12,0.04,0.16),rimMat);
 hoop.add(rimM,boardG,brk);
@@ -147,14 +147,18 @@ const netPos=new Float32Array(netBase.length*3),netGeo=new T.BufferGeometry();
 netGeo.setAttribute('position',new T.BufferAttribute(netPos,3));netGeo.setIndex(netIdx);
 const net=new T.LineSegments(netGeo,new T.LineBasicMaterial({color:0xffffff}));hoop.add(net);
 let netKick=0,netT=0;
+const HOOP_BACK=3.4;   // how far behind the player the hoop stands
+const pole=new T.Mesh(new T.CylinderGeometry(.06,.08,1,12),new T.MeshStandardMaterial({color:0x2b2b30,metalness:.6,roughness:.4}));scene.add(pole);
 function layoutHoop(){
-  // rim sits high in the middle of the screen, a good way in front of the player
-  const Zh=Math.max(1.0,Math.min(2.2,body.Zp*.45));
-  const p=unproj(W/2,Math.max(90,H*.16),Zh);
+  // the hoop stands far away in the room, centered and high on the screen
+  const Zh=body.Zp+HOOP_BACK;
+  const p=unproj(W/2,Math.max(60,H*.12),Zh);
   if(!rimReady){rim.copy(p);rimReady=true;}else rim.lerp(p,.05);
-  BOARD_Z=rim.z+0.375;
+  BOARD_Z=rim.z-0.375;
   rimM.position.copy(rim);net.position.copy(rim);
-  boardG.position.set(rim.x,rim.y+0.3,BOARD_Z+0.01);brk.position.set(rim.x,rim.y,BOARD_Z-0.07);
+  boardG.position.set(rim.x,rim.y+0.3,BOARD_Z-0.012);brk.position.set(rim.x,rim.y,BOARD_Z+0.07);
+  const top=rim.y-0.22,bot=body.floor,hgt=Math.max(.2,top-bot);
+  pole.position.set(rim.x,bot+hgt/2,BOARD_Z-0.12);pole.scale.set(1,hgt,1);
 }
 function updNet(dt){netKick*=Math.exp(-3.5*dt);netT+=dt;
   for(let k=0;k<netBase.length;k++){const[cx,y,cz,r,L]=netBase[k],f=L/3,q=1-netKick*.35*f,w=Math.sin(netT*18)*netKick*.03*f;
@@ -171,13 +175,25 @@ function ballTex(){const c=document.createElement('canvas');c.width=512;c.height
   const t=new T.CanvasTexture(c);t.encoding=T.sRGBEncoding;return t;}
 const ballM=new T.Mesh(new T.SphereGeometry(BR,32,24),new T.MeshStandardMaterial({map:ballTex(),roughness:.7}));
 scene.add(ballM);
+const trail=[];for(let i=0;i<7;i++){const m=new T.Mesh(new T.SphereGeometry(BR,16,12),new T.MeshBasicMaterial({color:0xff8a3d,transparent:true,opacity:.28*(1-i/7),depthWrite:false}));m.visible=false;scene.add(m);trail.push(m);}
+const trailPts=[];
 
 /* ===== audio ===== */
 let ac=null;
-function audio(){if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(ac&&ac.state==='suspended')ac.resume();}
+function audio(){if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)();loadSnd('dribble');loadSnd('swish');}catch(e){}}if(ac&&ac.state==='suspended')ac.resume();}
 function tone(f,d,type,vol,f2){if(!ac)return;const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime;o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d);}
 function noise(d,vol,fr){if(!ac)return;const n=ac.sampleRate*d,b=ac.createBuffer(1,n,ac.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*(1-i/n);const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=b;f.type='bandpass';f.frequency.value=fr;f.Q.value=.8;g.gain.value=vol;s.connect(f).connect(g).connect(ac.destination);s.start();}
-const sfx={bounce:v=>{tone(120,.18,'sine',Math.min(.6,.25+v*.06),55);noise(.05,.15,400);},clank:()=>{tone(620,.25,'triangle',.18,540);tone(1450,.12,'square',.04);},board:()=>{tone(180,.12,'square',.08,90);noise(.08,.2,900);},swish:()=>noise(.35,.5,3200),buzz:()=>tone(160,.9,'sawtooth',.15),catch:()=>tone(300,.06,'sine',.15,200),beep:f=>tone(f,.15,'sine',.25)};
+const BUF={};
+async function loadSnd(name){try{const r=await fetch(name+'.mp3');const ab=await r.arrayBuffer();BUF[name]=await new Promise((ok,no)=>ac.decodeAudioData(ab,ok,no));}catch(e){}}
+function play(name,vol,rate){const b=BUF[name];if(!ac||!b)return false;const s=ac.createBufferSource(),g=ac.createGain();s.buffer=b;s.playbackRate.value=rate||1;g.gain.value=vol;s.connect(g).connect(ac.destination);s.start();return true;}
+function whistle(){if(!ac)return;const t=ac.currentTime;
+  [[0,.35],[.45,1.0]].forEach(([s0,d])=>{const o=ac.createOscillator(),lfo=ac.createOscillator(),lg=ac.createGain(),g=ac.createGain(),o2=ac.createOscillator(),g2=ac.createGain();
+    o.type='sine';o.frequency.value=2950;o2.type='sine';o2.frequency.value=3180;lfo.frequency.value=34;lg.gain.value=180;lfo.connect(lg);lg.connect(o.frequency);lg.connect(o2.frequency);
+    g.gain.setValueAtTime(0,t+s0);g.gain.linearRampToValueAtTime(.22,t+s0+.02);g.gain.setValueAtTime(.22,t+s0+d-.06);g.gain.linearRampToValueAtTime(0,t+s0+d);
+    g2.gain.value=.5;o.connect(g);o2.connect(g2).connect(g);g.connect(ac.destination);
+    [o,o2,lfo].forEach(x=>{x.start(t+s0);x.stop(t+s0+d+.05);});});
+  noise(1.4,.05,3000);}
+const sfx={bounce:v=>{if(!play('dribble',Math.min(1,.35+v*.1),.95+Math.random()*.1)){tone(120,.18,'sine',Math.min(.6,.25+v*.06),55);noise(.05,.15,400);}},clank:()=>{tone(620,.25,'triangle',.18,540);tone(1450,.12,'square',.04);},board:()=>{tone(180,.12,'square',.08,90);noise(.08,.2,900);},swish:()=>{if(!play('swish',1))noise(.35,.5,3200);},buzz:()=>whistle(),catch:()=>tone(300,.06,'sine',.15,200),beep:f=>tone(f,.15,'sine',.25)};
 
 /* ===== state ===== */
 const B={p:new T.Vector3(0,0,-2.5),v:new T.Vector3(),s:'none',hand:16,ax:new T.Vector3(1,0,0),w:0,rest:0,pop:0,fromDrib:false};
@@ -206,7 +222,7 @@ function shoot(k,lat){
   const P=B.p.clone(),Hd=new T.Vector3(rim.x-P.x,0,rim.z-P.z),D=Math.max(.3,Hd.length());Hd.normalize();
   const h=rim.y-P.y,al=Math.atan(Math.tan(50*Math.PI/180)+2*h/D),c=Math.cos(al);
   let v=Math.sqrt(G*D*D/Math.max(.01,2*c*c*(D*Math.tan(al)-h)));
-  v*=1+(k-1)*.6;
+  v*=1+(k-1)*.15;
   Hd.applyAxisAngle(new T.Vector3(0,1,0),-lat);
   B.v.copy(Hd).multiplyScalar(v*c).setY(v*Math.sin(al));
   B.ax.crossVectors(Hd,new T.Vector3(0,1,0)).normalize();B.w=-14;
@@ -214,7 +230,7 @@ function shoot(k,lat){
   st.off=st.now-st.lastDrib<1.0;st.dist=D;st.shots++;hud();
 }
 function made(){st.scored=true;st.made++;st.streak++;netKick=1;
-  const sw=!st.tRim&&!st.tBoard,far=st.dist>2.0;let pts=far?3:2;const tags=[far?'三分':'兩分'];
+  const sw=!st.tRim&&!st.tBoard,far=st.dist>4.5;let pts=far?3:2;const tags=[far?'三分':'兩分'];
   if(sw){pts++;tags.push('空心 +1');}if(st.off){pts++;tags.push('急停跳投 +1');}
   if(st.streak>=5){pts*=2;tags.push('手感發燙 ×2');}
   st.score+=pts;sfx.swish();pop('+'+pts,tags.join(' · '),sw?'#3ee07a':'#fff');hud();}
@@ -227,8 +243,8 @@ function step(dt){
   const q=new T.Vector3(rim.x+hx/hl*RIM_R,rim.y,rim.z+hz/hl*RIM_R),d=p.clone().sub(q),dl=d.length();
   if(dl<BR+TUBE){const n=d.divideScalar(dl||1e-6);p.copy(q).addScaledVector(n,BR+TUBE);const vn=v.dot(n);
     if(vn<0){v.addScaledVector(n,-1.55*vn);v.multiplyScalar(.92);if(-vn>.6&&st.ccd<=0){sfx.clank();st.ccd=.08;}}st.tRim=true;}
-  // backboard: between the rim and the phone, the ball travels toward it (+z)
-  if(p.z+BR>BOARD_Z&&p.z<BOARD_Z+.15&&Math.abs(p.x-rim.x)<.95&&p.y>rim.y-.2&&p.y<rim.y+.85){p.z=BOARD_Z-BR;if(v.z>0){if(v.z>.8)sfx.board();v.z=-v.z*.45;v.x*=.85;v.y*=.85;}st.tBoard=true;}
+  // backboard behind the rim; the ball travels away from the phone (-z)
+  if(p.z-BR<BOARD_Z&&p.z>BOARD_Z-.15&&Math.abs(p.x-rim.x)<.95&&p.y>rim.y-.2&&p.y<rim.y+.85){p.z=BOARD_Z+BR;if(v.z<0){if(-v.z>.8)sfx.board();v.z=-v.z*.55;v.x*=.85;v.y*=.85;}st.tBoard=true;}
   const r2=Math.hypot(hx,hz);
   if(p.y<rim.y&&p.y>rim.y-.45&&r2<.24){v.x*=1-6*dt;v.z*=1-6*dt;v.y*=1-2.5*dt;if(r2>.12){p.x-=hx*3*dt;p.z-=hz*3*dt;}}
   if(B.s==='fly'&&py>=rim.y&&p.y<rim.y&&v.y<0&&!st.cross)st.cross=[+hx.toFixed(3),+hz.toFixed(3)];
@@ -332,7 +348,7 @@ function update(dt){
   }else if(B.s==='free'||B.s==='fly'){
     const n=Math.ceil(dt/.004);for(let i=0;i<n;i++)step(dt/n);
     if(B.s==='fly'){st.flightT+=dt;
-      if((st.scored&&st.flightT>1.3)||st.flightT>3.5||B.p.z>-.4||(B.p.y<=body.floor+BR+.01&&Math.abs(B.v.y)<.4)){if(!st.scored)missed();B.s='none';}}
+      if((st.scored&&st.flightT>1.6)||st.flightT>4.5||B.p.z<BOARD_Z-2||(B.p.y<=body.floor+BR+.01&&Math.abs(B.v.y)<.4)){if(!st.scored)missed();B.s='none';}}
     else{const resting=B.p.y<=body.floor+BR+.01&&Math.abs(B.v.y)<.3;B.rest=resting?B.rest+dt:0;
       if(B.rest>.8||!hands[15].ok&&!hands[16].ok){B.rest+=dt;if(B.rest>1.5){B.s='none';B.rest=0;}}}
   }
@@ -344,6 +360,8 @@ function render(){
   bx.clearRect(0,0,W,H);
   if(camOn)drawVideo(bx);
   ballM.position.copy(B.p);ballM.scale.setScalar(Math.max(.3,1-B.pop*1.6));ballM.visible=B.s!=='none';
+  if(B.s==='fly'){trailPts.unshift(B.p.clone());if(trailPts.length>14)trailPts.pop();}else trailPts.length=0;
+  trail.forEach((m,i)=>{const q=trailPts[(i+1)*2];m.visible=!!q;if(q){m.position.copy(q);m.scale.setScalar(1-i*.1);}});
   ren.render(scene,cam);
   if(!camOn)return;
   if(!body.ok)hint('退後，讓全身入鏡',true);

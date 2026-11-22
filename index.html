@@ -206,7 +206,7 @@ function shoot(k,lat){
   const P=B.p.clone(),Hd=new T.Vector3(rim.x-P.x,0,rim.z-P.z),D=Math.max(.3,Hd.length());Hd.normalize();
   const h=rim.y-P.y,al=Math.atan(Math.tan(50*Math.PI/180)+2*h/D),c=Math.cos(al);
   let v=Math.sqrt(G*D*D/Math.max(.01,2*c*c*(D*Math.tan(al)-h)));
-  v*=1+(k-1)*.2;
+  v*=1+(k-1)*.4;
   Hd.applyAxisAngle(new T.Vector3(0,1,0),-lat);
   B.v.copy(Hd).multiplyScalar(v*c).setY(v*Math.sin(al));
   B.ax.crossVectors(Hd,new T.Vector3(0,1,0)).normalize();B.w=-14;

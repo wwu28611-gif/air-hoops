@@ -200,11 +200,11 @@ function dribble(){B.s='free';B.fromDrib=true;B.v.set(hand.v.x*.5,Math.min(-2.2,
 function shoot(k,lat){
   const P=B.p.clone(),Hd=new T.Vector3(RIM.x-P.x,0,RIM.z-P.z),D=Hd.length();Hd.normalize();
   const h=RIM_Y-P.y,al=(D<3.6?56:52)*Math.PI/180,c=Math.cos(al);
-  let v=Math.sqrt(G*D*D/(2*c*c*(D*Math.tan(al)-h)));v*=1+(k-1)*.2;
+  let v=Math.sqrt(G*D*D/(2*c*c*(D*Math.tan(al)-h)));v*=1+(k-1)*.12;
   Hd.applyAxisAngle(new T.Vector3(0,1,0),-lat);
   B.v.copy(Hd).multiplyScalar(v*c).setY(v*Math.sin(al));
   B.ax.crossVectors(Hd,new T.Vector3(0,1,0)).normalize();B.w=-14;
-  B.s='fly';st.flightT=0;st.tRim=st.tBoard=st.scored=false;
+  B.s='fly';st.flightT=0;st.tRim=st.tBoard=st.scored=false;st.cross=null;st.lastK=+k.toFixed(3);st.lastLat=+lat.toFixed(3);
   st.off=st.now-st.lastDrib<1.0;st.three=DISTS[distI][2]===3;st.shots++;hud();
 }
 function made(){st.scored=true;st.made++;st.streak++;netKick=1;
@@ -224,6 +224,7 @@ function step(dt){
   if(p.z-BR<BOARD_Z&&p.z>BOARD_Z-.15&&Math.abs(p.x)<.95&&p.y>RIM_Y-.2&&p.y<RIM_Y+.95){p.z=BOARD_Z+BR;if(v.z<0){if(-v.z>.8)sfx.board();v.z=-v.z*.6;v.x*=.85;v.y*=.85;}st.tBoard=true;}
   const r2=Math.hypot(hx,hz);
   if(p.y<RIM_Y&&p.y>RIM_Y-.45&&r2<.24){v.x*=1-6*dt;v.z*=1-6*dt;v.y*=1-2.5*dt;if(r2>.12){p.x-=hx*3*dt;p.z-=hz*3*dt;}}
+  if(B.s==='fly'&&py>=RIM_Y&&p.y<RIM_Y&&v.y<0&&!st.cross)st.cross=[+(p.x-RIM.x).toFixed(3),+(p.z-RIM.z).toFixed(3)];
   if(B.s==='fly'&&!st.scored&&py>=RIM_Y&&p.y<RIM_Y&&v.y<0&&r2<RIM_R-BR*.35)made();
   if(p.y<FLOOR+BR){p.y=FLOOR+BR;if(v.y<0){const s=-v.y;if(s>.8&&st.bcd<=0){sfx.bounce(s);st.bcd=.06;}
     if(B.s==='free'&&hand.ok){const top=Math.max(.15,holdPt().y-(FLOOR+BR)+.04);v.y=Math.sqrt(2*G*top);v.x*=.3;v.z=(hand.p.z-p.z)*1.2;}
@@ -258,7 +259,7 @@ function handFromScreen(S){
   if(hand.ok)np.z=hand.p.z*.7+np.z*.3;
   hand.p.copy(np);hand.ok=true;
   hand.hist.push({t:now,x:np.x,y:np.y});while(hand.hist.length&&now-hand.hist[0].t>120)hand.hist.shift();
-  if(hand.hist.length>=3){const a=hand.hist[0],b=hand.hist[hand.hist.length-1],dt=(b.t-a.t)/1000;if(dt>.03)hand.v.set((b.x-a.x)/dt,(b.y-a.y)/dt,0);}
+  if(hand.hist.length>=3){const a=hand.hist[0],b=hand.hist[hand.hist.length-1],dt=(b.t-a.t)/1000;if(dt>.03){const vx=(b.x-a.x)/dt,vy=(b.y-a.y)/dt;if(Math.hypot(vx,vy)<7)hand.v.set(vx,vy,0);else{hand.hist=[b];hand.v.set(0,0,0);}}}
   gestures();
 }
 function gestures(){
@@ -266,8 +267,9 @@ function gestures(){
   const IDEAL=2.2/sens(),up=hand.v.y;
   if(B.s==='held'&&st.cd<=0){
     if(st.phase==='idle'){
-      if(up>1.0){st.phase='rise';st.peak=up;st.peakVx=hand.v.x;st.riseT=st.now;}
-      else if(up<-1.1){dribble();st.cd=.15;}
+      if(up>1.0){st.upN=(st.upN||0)+1;if(st.upN>=2){st.phase='rise';st.peak=up;st.peakVx=hand.v.x;st.riseT=st.now;}}else st.upN=0;
+      if(up<-1.1)st.upN=0;
+      if(st.phase==='idle'&&up<-1.1){dribble();st.cd=.15;}
     }
   }
   if(st.phase==='rise'){
@@ -358,7 +360,7 @@ window.__AH={
   test(on){testMode=on;},step(dt){update(dt);},
   lose(){if(hand.ok)hand.lostAt=st.now;hand.ok=false;hand.lm=null;hand.hist=[];},
   dist(i){distI=i;placeHoop();},
-  info(){return {W,H,F,PALM,s:B.s,score:st.score,made:st.made,shots:st.shots,phase:st.phase,bp:B.p.toArray().map(v=>+v.toFixed(3)),hp:hand.p.toArray().map(v=>+v.toFixed(3)),hv:hand.v.toArray().map(v=>+v.toFixed(2)),lastDrib:st.lastDrib,now:st.now,sens:sens()};}
+  info(){return {W,H,F,PALM,s:B.s,score:st.score,made:st.made,shots:st.shots,phase:st.phase,bp:B.p.toArray().map(v=>+v.toFixed(3)),hp:hand.p.toArray().map(v=>+v.toFixed(3)),hv:hand.v.toArray().map(v=>+v.toFixed(2)),lastDrib:st.lastDrib,now:st.now,sens:sens(),cross:st.cross,k:st.lastK,lat:st.lastLat,rim:st.tRim,board:st.tBoard};}
 };
 
 /* ===== camera ===== */

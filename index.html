@@ -206,7 +206,7 @@ function respawn(){
   const c=[16,15].filter(i=>hands[i].ok);if(!c.length)return;
   // the raised hand gets the ball; if both are level, the one nearer the hoop
   c.sort((a,b)=>Math.abs(hands[a].y-hands[b].y)>.1?hands[b].y-hands[a].y:(hands[b].x-hands[a].x)*side);const i=c[0];
-  const p=hp(i);B.x=p.x;B.y=p.y;B.s='held';B.hand=i;B.pop=.35;B.vx=B.vy=0;st.scored=false;
+  const p=hp(i);B.x=p.x;B.y=p.y;B.s='held';B.hand=i;B.pop=.35;B.vx=B.vy=0;st.scored=false;st.cd=.4;st.phase='idle';st.upN=0;
 }
 function dribble(){const h=hands[B.hand];B.s='free';B.fromDrib=true;B.vx=h.vx*.4;B.vy=Math.min(-2.4,h.vy*1.35);B.spin=-8;}
 function shoot(k,dev){
@@ -214,7 +214,7 @@ function shoot(k,dev){
   const al=Math.atan(Math.tan(50*Math.PI/180)+2*h/Math.max(.3,D)),c=Math.cos(al);
   const den=2*c*c*(Math.max(.3,D)*Math.tan(al)-h);
   let v=Math.sqrt(G*Math.max(.3,D)**2/Math.max(.01,den));
-  v*=1+(k-1)*.085;
+  v*=1+(k-1)*.2;
   const a2=al+dev;
   B.vx=dir*v*Math.cos(a2);B.vy=v*Math.sin(a2);
   B.s='fly';B.spin=dir*-12;st.flightT=0;st.tRim=st.tBoard=st.scored=false;st.cross=null;st.lastK=+k.toFixed(3);
@@ -259,7 +259,7 @@ function detect(){
   if(!L){lose();return;}
   calcCover();processPose(L.map(toS));
 }
-function lose(){body.ok=false;body.lm=null;for(const i of [15,16]){hands[i].ok=false;hands[i].h=[];}}
+function lose(){body.ok=false;body.lm=null;for(const i of [15,16]){const h=hands[i];h.ok=false;h.h=[];h.vx=h.vy=0;}st.phase='idle';st.upN=0;}
 const ok=p=>p&&p.v>.5&&p.x>-20&&p.x<W+20&&p.y>-20&&p.y<H+20;
 function processPose(P){
   body.lm=P;body.ok=ok(P[11])&&ok(P[12]);
@@ -276,7 +276,7 @@ function processPose(P){
   const now=st.now*1000;
   for(const [i,ix] of [[15,19],[16,20]]){
     const w=P[i],f=P[ix],hd=hands[i];
-    if(!ok(w)){hd.ok=false;hd.h=[];continue;}
+    if(!ok(w)){hd.ok=false;hd.h=[];hd.vx=hd.vy=0;continue;}
     const sx=ok(f)?(w.x+f.x)/2:w.x,sy=ok(f)?(w.y+f.y)/2:w.y,q=toPlane(sx,sy);
     hd.ok=true;hd.x=q.x;hd.y=q.y;hd.h.push({t:now,x:q.x,y:q.y});
     while(hd.h.length>2&&now-hd.h[0].t>130)hd.h.shift();

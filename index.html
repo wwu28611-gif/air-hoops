@@ -75,9 +75,9 @@ canvas.layer{position:fixed;inset:0;width:100%;height:100%;display:block;pointer
 <div class="ov" id="start">
   <div class="card">
     <h1>空氣投籃 <span>AR</span></h1>
-    <p>右手拿手機，後鏡頭對著前方；左手伸到鏡頭前，籃球就在你掌心。</p>
+    <p>右手拿手機，後鏡頭對著前方；左手伸出食指，籃球就頂在你指尖上。</p>
     <ul class="how">
-      <li><svg viewBox="0 0 48 48"><path d="M10 34c4 4 24 4 28 0" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round"/><circle cx="24" cy="20" r="10" fill="#ff5a1f"/></svg><div><b>手掌朝上</b>：球會停在掌心，手動球就跟著動。</div></li>
+      <li><svg viewBox="0 0 48 48"><path d="M10 34c4 4 24 4 28 0" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round"/><circle cx="24" cy="20" r="10" fill="#ff5a1f"/></svg><div><b>伸出食指</b>：球會黏在食指尖上轉，手指動球就跟著動。</div></li>
       <li><svg viewBox="0 0 48 48"><circle cx="24" cy="12" r="7" fill="#ff5a1f"/><path d="M24 22v14M17 30l7 7 7-7" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 44h28" stroke="#fff8" stroke-width="3" stroke-linecap="round"/></svg><div><b>手往下拍</b>：運球。球彈回來時手放在原處就接得到，連續拍就是連續運球。</div></li>
       <li><svg viewBox="0 0 48 48"><path d="M24 42V12M14 21l10-10 10 10" stroke="#3ee07a" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>手快速往上推</b>：投籃。推得越快越遠，往左往右推會偏。運球後馬上投 = 急停跳投 +1。</div></li>
     </ul>
@@ -186,7 +186,7 @@ const hand={ok:false,p:new T.Vector3(),v:new T.Vector3(),hist:[],lm:null,s:0,los
 let best=0;try{best=+localStorage.getItem('airhoops-ar-best')||0}catch(e){}
 const showBest=()=>{$('best').textContent=best?`60 秒最佳：${best} 分`:'';};showBest();
 const sens=()=>+$('sens').value||1;
-const holdPt=()=>hand.p.clone().add(new T.Vector3(0,BR*0.95,0));
+const holdPt=()=>hand.p.clone().add(new T.Vector3(0,BR+0.01,0));
 
 let lastHint='';function hint(t,need){if(t===lastHint)return;lastHint=t;const h=$('hint');h.innerHTML=`<b>${t}</b>`;h.classList.toggle('need',!!need);}
 function pop(big,small,col){const e=$('pop');e.innerHTML=big+(small?`<small>${small}</small>`:'');e.style.color=col||'#fff';e.classList.remove('on');void e.offsetWidth;e.classList.add('on');}
@@ -252,7 +252,7 @@ function handFromScreen(S){
   const now=st.now*1000;hand.lm=S;
   const d=(a,b)=>Math.hypot(S[a][0]-S[b][0],S[a][1]-S[b][1]);
   const size=Math.max(d(0,9),d(5,17)*1.3);
-  let cx=0,cy=0;for(const i of [0,5,9,13,17]){cx+=S[i][0];cy+=S[i][1];}cx/=5;cy/=5;
+  const cx=S[8][0],cy=S[8][1];/* index fingertip is the anchor */
   hand.s=hand.ok?hand.s*.6+size*.4:size;
   const depth=Math.max(.18,Math.min(1.4,F*PALM/hand.s));
   const np=unproj(cx,cy,depth);
@@ -325,7 +325,7 @@ function update(dt){
   if(st.run&&st.mode==='60'){st.time-=dt;if(st.time<=0){st.time=0;endGame();}$('timer').textContent=Math.ceil(st.time);}
   // ball update
   if(B.s==='held'){
-    if(hand.ok){const tp=holdPt();B.p.lerp(tp,1-Math.exp(-40*dt));}
+    if(hand.ok){const tp=holdPt();B.p.lerp(tp,1-Math.exp(-40*dt));B.ax.set(0,1,0);B.w=9;}
     else if(st.now-hand.lostAt>.5){B.s='free';B.v.set(0,0,0);}
   }else if(B.s==='free'||B.s==='fly'){
     const n=Math.ceil(dt/.004);for(let i=0;i<n;i++)step(dt/n);
@@ -345,7 +345,7 @@ function render(){
   handMask();
   // hints
   if(!camOn)return;
-  if(!hand.ok)hint('把左手伸到鏡頭前，手掌朝上',true);
+  if(!hand.ok)hint('把左手食指伸到鏡頭前',true);
   else if(B.s==='held')hint('往下拍＝運球　快速往上推＝投籃');
   else if(B.s==='free')hint('手放在原處接球，或往下拍繼續運');
   else if(B.s==='fly')hint('…');

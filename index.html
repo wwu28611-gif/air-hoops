@@ -70,7 +70,7 @@ canvas.layer{position:fixed;inset:0;width:100%;height:100%;display:block;pointer
 <div id="pop"></div>
 <div id="cd"></div>
 <div id="gauge"><em></em><i></i></div>
-<div class="pills"><button id="pSide" type="button">籃框換邊</button><button id="pMenu" type="button">選單</button></div>
+<div class="pills"><button id="pMenu" type="button">選單</button></div>
 <div id="hint"><b>退後，讓全身入鏡</b></div>
 
 <div class="ov" id="start">
@@ -78,17 +78,16 @@ canvas.layer{position:fixed;inset:0;width:100%;height:100%;display:block;pointer
     <h1>空氣投籃 <span>全身版</span></h1>
     <p>把手機立在地上或架子上，自拍鏡頭對著你，退後 2–3 步讓頭到腳都入鏡。</p>
     <ul class="how">
-      <li><svg viewBox="0 0 48 48"><circle cx="24" cy="8" r="5" fill="#fff"/><path d="M24 14v16M24 30l-7 14M24 30l7 14M24 19l-10 7M24 19l9 -6" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="36" cy="10" r="5" fill="#ff5a1f"/></svg><div><b>全身入鏡</b>：畫面會描出你的骨架。舉起一隻手，球就會黏在那隻手上。</div></li>
+      <li><svg viewBox="0 0 48 48"><circle cx="24" cy="8" r="5" fill="#fff"/><path d="M24 14v16M24 30l-7 14M24 30l7 14M24 19l-10 7M24 19l9 -6" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="36" cy="10" r="5" fill="#ff5a1f"/></svg><div><b>全身入鏡</b>：籃框就在你正前方的上空。舉起一隻手，球就會黏在那隻手上。</div></li>
       <li><svg viewBox="0 0 48 48"><circle cx="24" cy="12" r="7" fill="#ff5a1f"/><path d="M24 22v14M17 30l7 7 7-7" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 44h28" stroke="#fff8" stroke-width="3" stroke-linecap="round"/></svg><div><b>手往下拍</b>：運球。球彈回來時把手放回原處就接住，可以一直運。</div></li>
-      <li><svg viewBox="0 0 48 48"><path d="M24 42V12M14 21l10-10 10 10" stroke="#3ee07a" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>手快速往上推過頭</b>：投籃，球會飛向籃框。推的速度決定力道，看下方力道條。運球後馬上投 = 急停跳投 +1。</div></li>
+      <li><svg viewBox="0 0 48 48"><path d="M24 42V12M14 21l10-10 10 10" stroke="#3ee07a" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>手快速往上推過頭</b>：投籃，球會朝你正前方的籃框飛。推的速度決定力道，看下方力道條。運球後馬上投 = 急停跳投 +1。</div></li>
     </ul>
-    <div class="row"><span>籃框位置</span><div class="seg" id="segSide"><button type="button" data-v="-1">左邊</button><button type="button" data-v="1" class="on">右邊</button></div></div>
     <div class="row"><span>力道靈敏度</span><input type="range" id="sens" min="0.5" max="2" step="0.05" value="1"></div>
     <button class="btn main" id="b60" type="button">開鏡頭 · 60 秒挑戰</button>
     <button class="btn" id="bfree" type="button">開鏡頭 · 自由練習</button>
     <div id="msg"></div>
     <div id="best"></div>
-    <div style="font-size:12px;opacity:.5;margin-top:8px">版本 v6 · 全身骨架版</div>
+    <div style="font-size:12px;opacity:.5;margin-top:8px">版本 v7 · 正前方籃框</div>
   </div>
 </div>
 <div class="ov hide" id="end">
@@ -107,61 +106,55 @@ const T=window.THREE;
 if(!T)msg('3D 載入失敗，請確認網路後重新整理。');
 const V='0.10.14';
 let vision=null;
-import(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${V}/vision_bundle.mjs`).then(m=>vision=m).catch(()=>msg('姿勢辨識模組下載失敗，請檢查網路。'));
+import(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${V}/vision_bundle.mjs`).then(m=>vision=m).catch(()=>msg('骨架辨識模組下載失敗，請檢查網路。'));
 
-/* ===== world: a vertical plane at the player's depth, meters, floor y=0, x right ===== */
-const G=9.81,BR=0.12,RIM_R=0.2286,TUBE=0.02,TORSO_LEG=1.30;
-let side=1;           // hoop on screen right (1) or left (-1)
-const rim={x:1.5,y:2.4};
+/* ===== world in meters: camera (the phone) at origin looking -z; the player stands at depth Zp ===== */
+const G=9.81,BR=0.12,RIM_R=0.2286,TUBE=0.014,TORSO_LEG=1.30,FOV=60;
+const rim=new T.Vector3(0,0.4,-1.2);let BOARD_Z=-0.825,rimReady=false;
 
 /* ===== layers ===== */
 const vid=$('vid'),bg=$('bg'),bx=bg.getContext('2d');
 const ren=new T.WebGLRenderer({canvas:$('gl'),alpha:true,antialias:true});
 ren.setPixelRatio(Math.min(devicePixelRatio||1,1.5));ren.outputEncoding=T.sRGBEncoding;
-const scene=new T.Scene(),cam=new T.PerspectiveCamera(50,1,0.1,100);
+const scene=new T.Scene(),cam=new T.PerspectiveCamera(FOV,1,0.05,60);
 scene.add(new T.HemisphereLight(0xffffff,0x553322,1.0));
-const dl=new T.DirectionalLight(0xffffff,.8);dl.position.set(-2,4,3);scene.add(dl);
-let W=1,H=1,F=1,DPR=1;const D0=6;
+const dl=new T.DirectionalLight(0xffffff,.8);dl.position.set(-1,3,1);scene.add(dl);
+let W=1,H=1,F=1,DPR=1;
 function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,1.5);
   bg.width=W*DPR;bg.height=H*DPR;bx.setTransform(DPR,0,0,DPR,0,0);
-  ren.setSize(W,H,false);cam.aspect=W/H;cam.updateProjectionMatrix();F=(H/2)/Math.tan(25*Math.PI/180);}
+  ren.setSize(W,H,false);cam.aspect=W/H;cam.fov=FOV;cam.updateProjectionMatrix();F=(H/2)/Math.tan(FOV*Math.PI/360);}
 addEventListener('resize',resize);resize();
+const unproj=(sx,sy,d)=>new T.Vector3((sx-W/2)/F*d,-(sy-H/2)/F*d,-d);
 
-/* body-derived mapping between screen px and plane meters */
-const body={ok:false,full:false,ppm:300,floorY:0,cx:0,shoulderY:0,lm:null};
-function setDefaults(){body.ppm=H*0.8/1.75;body.floorY=H*0.95;body.cx=W/2;}
-setDefaults();
-const toPlane=(sx,sy)=>({x:(sx-body.cx)/body.ppm,y:(body.floorY-sy)/body.ppm});
-const toScreen=(x,y)=>[body.cx+x*body.ppm,body.floorY-y*body.ppm];
-const s3=()=>D0/F*body.ppm;   // three units per meter on the plane
-const to3=(x,y)=>{const[sx,sy]=toScreen(x,y);return new T.Vector3((sx-W/2)/F*D0,-(sy-H/2)/F*D0,-D0);};
+/* body-derived depth and floor */
+const body={ok:false,full:false,ppm:300,Zp:2.5,floor:-1.2,shoulderY:0.2};
 
-/* ===== hoop (built in meters, origin at rim center) ===== */
+/* ===== hoop, straight ahead of the player (between the player and the phone) ===== */
 const hoop=new T.Group();scene.add(hoop);
-const metal=new T.MeshStandardMaterial({color:0x2b2b30,metalness:.6,roughness:.4});
 const rimMat=new T.MeshStandardMaterial({color:0xff4a12,metalness:.4,roughness:.35,emissive:0x501400});
 const rimM=new T.Mesh(new T.TorusGeometry(RIM_R,0.018,10,48),rimMat);rimM.rotation.x=Math.PI/2;
 const boardG=new T.Group();
-const boardM=new T.Mesh(new T.BoxGeometry(0.03,1.05,1.8),new T.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:.7,roughness:.2}));
-const lm1=new T.LineBasicMaterial({color:0xff3b1f});
-const sq=new T.Line(new T.BufferGeometry().setFromPoints([[-1,-1],[1,-1],[1,1],[-1,1],[-1,-1]].map(p=>new T.Vector3(-0.017,0.23+p[1]*.225,p[0]*.295))),lm1);
-boardG.add(boardM,sq);
-const brk=new T.Mesh(new T.BoxGeometry(0.16,0.04,0.12),rimMat);
-const arm=new T.Mesh(new T.BoxGeometry(0.6,0.08,0.08),metal);
-hoop.add(rimM,boardG,brk,arm);
+boardG.add(new T.Mesh(new T.BoxGeometry(1.8,1.05,0.02),new T.MeshStandardMaterial({color:0xdff0ff,transparent:true,opacity:.22,roughness:.1,depthWrite:false})));
+const lm1=new T.LineBasicMaterial({color:0xffffff}),lm2=new T.LineBasicMaterial({color:0xff3b1f});
+const rect=(w,h,cy,m)=>new T.Line(new T.BufferGeometry().setFromPoints([[-1,-1],[1,-1],[1,1],[-1,1],[-1,-1]].map(p=>new T.Vector3(p[0]*w/2,cy+p[1]*h/2,0))),m);
+boardG.add(rect(1.8,1.05,0,lm1),rect(0.59,0.45,-0.145,lm2));
+const brk=new T.Mesh(new T.BoxGeometry(0.12,0.04,0.16),rimMat);
+hoop.add(rimM,boardG,brk);
 const NS=14,LV=[[0,.225],[-.15,.2],[-.29,.175],[-.43,.15]],netBase=[],netIdx=[];
 for(let L=0;L<LV.length;L++)for(let i=0;i<NS;i++){const a=(i+L*.5)/NS*Math.PI*2;netBase.push([Math.cos(a),LV[L][0],Math.sin(a),LV[L][1],L]);}
 for(let L=0;L<LV.length-1;L++)for(let i=0;i<NS;i++){const a=L*NS+i;netIdx.push(a,(L+1)*NS+i,a,(L+1)*NS+(i+NS-1)%NS);}
 const netPos=new Float32Array(netBase.length*3),netGeo=new T.BufferGeometry();
 netGeo.setAttribute('position',new T.BufferAttribute(netPos,3));netGeo.setIndex(netIdx);
-hoop.add(new T.LineSegments(netGeo,new T.LineBasicMaterial({color:0xffffff})));
+const net=new T.LineSegments(netGeo,new T.LineBasicMaterial({color:0xffffff}));hoop.add(net);
 let netKick=0,netT=0;
 function layoutHoop(){
-  // rim near the top corner of the screen, inside the frame
-  const sx=W/2+side*(W/2-Math.max(70,W*.2)),sy=Math.max(120,H*.2);
-  const p=toPlane(sx,sy);rim.x=p.x;rim.y=p.y;
-  boardG.position.set(side*(RIM_R+0.15),0.3,0);brk.position.set(side*(RIM_R+0.06),0,0);arm.position.set(side*(RIM_R+0.47),0.3,0);
-  hoop.rotation.set(0.28,-side*0.55,0);
+  // rim sits high in the middle of the screen, a good way in front of the player
+  const Zh=Math.max(1.0,Math.min(2.2,body.Zp*.45));
+  const p=unproj(W/2,Math.max(90,H*.16),Zh);
+  if(!rimReady){rim.copy(p);rimReady=true;}else rim.lerp(p,.05);
+  BOARD_Z=rim.z+0.375;
+  rimM.position.copy(rim);net.position.copy(rim);
+  boardG.position.set(rim.x,rim.y+0.3,BOARD_Z+0.01);brk.position.set(rim.x,rim.y,BOARD_Z-0.07);
 }
 function updNet(dt){netKick*=Math.exp(-3.5*dt);netT+=dt;
   for(let k=0;k<netBase.length;k++){const[cx,y,cz,r,L]=netBase[k],f=L/3,q=1-netKick*.35*f,w=Math.sin(netT*18)*netKick*.03*f;
@@ -176,7 +169,7 @@ function ballTex(){const c=document.createElement('canvas');c.width=512;c.height
   for(const u of [128,384]){x.beginPath();x.moveTo(u,0);x.lineTo(u,256);x.stroke();}
   for(const o of [0,256]){x.beginPath();for(let u=0;u<=256;u+=4)x.lineTo(o+u,128+(o?1:-1)*100*Math.sin(u/256*Math.PI));x.stroke();}
   const t=new T.CanvasTexture(c);t.encoding=T.sRGBEncoding;return t;}
-const ballM=new T.Mesh(new T.SphereGeometry(1,32,24),new T.MeshStandardMaterial({map:ballTex(),roughness:.7}));
+const ballM=new T.Mesh(new T.SphereGeometry(BR,32,24),new T.MeshStandardMaterial({map:ballTex(),roughness:.7}));
 scene.add(ballM);
 
 /* ===== audio ===== */
@@ -187,13 +180,14 @@ function noise(d,vol,fr){if(!ac)return;const n=ac.sampleRate*d,b=ac.createBuffer
 const sfx={bounce:v=>{tone(120,.18,'sine',Math.min(.6,.25+v*.06),55);noise(.05,.15,400);},clank:()=>{tone(620,.25,'triangle',.18,540);tone(1450,.12,'square',.04);},board:()=>{tone(180,.12,'square',.08,90);noise(.08,.2,900);},swish:()=>noise(.35,.5,3200),buzz:()=>tone(160,.9,'sawtooth',.15),catch:()=>tone(300,.06,'sine',.15,200),beep:f=>tone(f,.15,'sine',.25)};
 
 /* ===== state ===== */
-const B={x:0,y:1,vx:0,vy:0,s:'none',hand:16,spin:0,rot:0,rest:0,pop:0,fromDrib:false};
+const B={p:new T.Vector3(0,0,-2.5),v:new T.Vector3(),s:'none',hand:16,ax:new T.Vector3(1,0,0),w:0,rest:0,pop:0,fromDrib:false};
 const st={mode:'free',run:false,score:0,made:0,shots:0,streak:0,time:60,now:0,lastDrib:-9,flightT:0,scored:false,tRim:false,tBoard:false,off:false,cd:0,bcd:0,ccd:0,phase:'idle',peak:0,pvx:0,riseT:0,upN:0,count:0,cross:null,lastK:null};
-const hands={15:{ok:false,x:0,y:0,vx:0,vy:0,h:[]},16:{ok:false,x:0,y:0,vx:0,vy:0,h:[]}};
+const mkHand=()=>({ok:false,p:new T.Vector3(),vx:0,vy:0,h:[]});
+const hands={15:mkHand(),16:mkHand()};
 let best=0;try{best=+localStorage.getItem('airhoops-body-best')||0}catch(e){}
 const showBest=()=>{$('best').textContent=best?`60 秒最佳：${best} 分`:'';};showBest();
 const sens=()=>+$('sens').value||1;
-const hp=i=>({x:hands[i].x,y:hands[i].y+BR+0.04});   // ball rests on top of the hand
+const hp=i=>hands[i].p.clone().add(new T.Vector3(0,BR+0.04,0));
 
 let lastHint='';function hint(t,need){if(t===lastHint)return;lastHint=t;const h=$('hint');h.innerHTML=`<b>${t}</b>`;h.classList.toggle('need',!!need);}
 function pop(big,small,col){const e=$('pop');e.innerHTML=big+(small?`<small>${small}</small>`:'');e.style.color=col||'#fff';e.classList.remove('on');void e.offsetWidth;e.classList.add('on');}
@@ -201,53 +195,53 @@ function hud(){$('timer').textContent=st.mode==='60'?Math.ceil(st.time):'∞';$(
 function gauge(k){const g=$('gauge');if(k==null){g.classList.remove('on');return;}g.classList.add('on');g.querySelector('i').style.width=Math.min(100,k/2*100)+'%';g.classList.toggle('good',Math.abs(k-1)<.08);}
 
 /* ===== actions ===== */
-function attach(i){B.s='held';B.hand=i;B.vx=B.vy=0;if(B.fromDrib){st.lastDrib=st.now;B.fromDrib=false;}}
+function attach(i){B.s='held';B.hand=i;B.v.set(0,0,0);if(B.fromDrib){st.lastDrib=st.now;B.fromDrib=false;}}
 function respawn(){
   const c=[16,15].filter(i=>hands[i].ok);if(!c.length)return;
-  // the raised hand gets the ball; if both are level, the one nearer the hoop
-  c.sort((a,b)=>Math.abs(hands[a].y-hands[b].y)>.1?hands[b].y-hands[a].y:(hands[b].x-hands[a].x)*side);const i=c[0];
-  const p=hp(i);B.x=p.x;B.y=p.y;B.s='held';B.hand=i;B.pop=.35;B.vx=B.vy=0;st.scored=false;st.cd=.4;st.phase='idle';st.upN=0;
+  c.sort((a,b)=>hands[b].p.y-hands[a].p.y);const i=c[0];   // the raised hand gets the ball
+  B.p.copy(hp(i));B.s='held';B.hand=i;B.pop=.35;B.v.set(0,0,0);B.w=0;st.scored=false;st.cd=.4;st.phase='idle';st.upN=0;
 }
-function dribble(){const h=hands[B.hand];B.s='free';B.fromDrib=true;B.vx=h.vx*.4;B.vy=Math.min(-2.4,h.vy*1.35);B.spin=-8;}
-function shoot(k,dev){
-  const dx=rim.x-B.x,D=Math.abs(dx),h=rim.y-B.y,dir=Math.sign(dx)||side;
-  const al=Math.atan(Math.tan(50*Math.PI/180)+2*h/Math.max(.3,D)),c=Math.cos(al);
-  const den=2*c*c*(Math.max(.3,D)*Math.tan(al)-h);
-  let v=Math.sqrt(G*Math.max(.3,D)**2/Math.max(.01,den));
+function dribble(){const h=hands[B.hand];B.s='free';B.fromDrib=true;B.v.set(h.vx*.4,Math.min(-2.4,h.vy*1.35),0);B.ax.set(1,0,0);B.w=-10;}
+function shoot(k,lat){
+  const P=B.p.clone(),Hd=new T.Vector3(rim.x-P.x,0,rim.z-P.z),D=Math.max(.3,Hd.length());Hd.normalize();
+  const h=rim.y-P.y,al=Math.atan(Math.tan(50*Math.PI/180)+2*h/D),c=Math.cos(al);
+  let v=Math.sqrt(G*D*D/Math.max(.01,2*c*c*(D*Math.tan(al)-h)));
   v*=1+(k-1)*.2;
-  const a2=al+dev;
-  B.vx=dir*v*Math.cos(a2);B.vy=v*Math.sin(a2);
-  B.s='fly';B.spin=dir*-12;st.flightT=0;st.tRim=st.tBoard=st.scored=false;st.cross=null;st.lastK=+k.toFixed(3);
-  st.off=st.now-st.lastDrib<1.0;st.shots++;hud();
+  Hd.applyAxisAngle(new T.Vector3(0,1,0),-lat);
+  B.v.copy(Hd).multiplyScalar(v*c).setY(v*Math.sin(al));
+  B.ax.crossVectors(Hd,new T.Vector3(0,1,0)).normalize();B.w=-14;
+  B.s='fly';st.flightT=0;st.tRim=st.tBoard=st.scored=false;st.cross=null;st.lastK=+k.toFixed(3);
+  st.off=st.now-st.lastDrib<1.0;st.dist=D;st.shots++;hud();
 }
 function made(){st.scored=true;st.made++;st.streak++;netKick=1;
-  const sw=!st.tRim&&!st.tBoard,far=Math.abs(rim.x-B.x)>2.2;let pts=far?3:2;const tags=[far?'三分':'兩分'];
+  const sw=!st.tRim&&!st.tBoard,far=st.dist>2.0;let pts=far?3:2;const tags=[far?'三分':'兩分'];
   if(sw){pts++;tags.push('空心 +1');}if(st.off){pts++;tags.push('急停跳投 +1');}
   if(st.streak>=5){pts*=2;tags.push('手感發燙 ×2');}
   st.score+=pts;sfx.swish();pop('+'+pts,tags.join(' · '),sw?'#3ee07a':'#fff');hud();}
 function missed(){if(st.streak>=3)pop('斷了','連進 '+st.streak+' 球結束','#ffb199');st.streak=0;hud();}
 
-/* ===== physics on the plane ===== */
-function circleHit(px,py,r){const dx=B.x-px,dy=B.y-py,d=Math.hypot(dx,dy);if(d<BR+r){const nx=dx/(d||1e-6),ny=dy/(d||1e-6);B.x=px+nx*(BR+r);B.y=py+ny*(BR+r);const vn=B.vx*nx+B.vy*ny;if(vn<0){B.vx-=1.55*vn*nx;B.vy-=1.55*vn*ny;B.vx*=.92;B.vy*=.92;if(-vn>.6&&st.ccd<=0){sfx.clank();st.ccd=.08;}}return true;}return false;}
+/* ===== physics ===== */
 function step(dt){
-  const py=B.y;B.vy-=G*dt;B.x+=B.vx*dt;B.y+=B.vy*dt;
-  const front=rim.x-side*RIM_R,back=rim.x+side*RIM_R;
-  if(circleHit(front,rim.y,TUBE)||circleHit(back,rim.y,TUBE))st.tRim=true;
-  const bxp=rim.x+side*(RIM_R+.15);   // backboard plane
-  if(B.y>rim.y-.2&&B.y<rim.y+.85&&(B.x-bxp)*side>-BR&&(B.x-bxp)*side<.1){B.x=bxp-side*BR;if(B.vx*side>0){if(Math.abs(B.vx)>.8)sfx.board();B.vx=-B.vx*.6;}st.tBoard=true;}
-  const inX=Math.abs(B.x-rim.x)<RIM_R;
-  if(B.y<rim.y&&B.y>rim.y-.45&&inX){B.vx*=1-6*dt;B.vy*=1-2.5*dt;B.x+=(rim.x-B.x)*3*dt;}
-  if(B.s==='fly'&&py>=rim.y&&B.y<rim.y&&B.vy<0&&!st.cross)st.cross=+(B.x-rim.x).toFixed(3);
-  if(B.s==='fly'&&!st.scored&&py>=rim.y&&B.y<rim.y&&B.vy<0&&Math.abs(B.x-rim.x)<RIM_R-BR*.35)made();
-  if(B.y<BR){B.y=BR;if(B.vy<0){const s=-B.vy;if(s>.8&&st.bcd<=0){sfx.bounce(s);st.bcd=.06;}
+  const p=B.p,v=B.v,py=p.y;v.y-=G*dt;p.addScaledVector(v,dt);
+  const hx=p.x-rim.x,hz=p.z-rim.z,hl=Math.hypot(hx,hz)||1e-6;
+  const q=new T.Vector3(rim.x+hx/hl*RIM_R,rim.y,rim.z+hz/hl*RIM_R),d=p.clone().sub(q),dl=d.length();
+  if(dl<BR+TUBE){const n=d.divideScalar(dl||1e-6);p.copy(q).addScaledVector(n,BR+TUBE);const vn=v.dot(n);
+    if(vn<0){v.addScaledVector(n,-1.55*vn);v.multiplyScalar(.92);if(-vn>.6&&st.ccd<=0){sfx.clank();st.ccd=.08;}}st.tRim=true;}
+  // backboard: between the rim and the phone, the ball travels toward it (+z)
+  if(p.z+BR>BOARD_Z&&p.z<BOARD_Z+.15&&Math.abs(p.x-rim.x)<.95&&p.y>rim.y-.2&&p.y<rim.y+.85){p.z=BOARD_Z-BR;if(v.z>0){if(v.z>.8)sfx.board();v.z=-v.z*.6;v.x*=.85;v.y*=.85;}st.tBoard=true;}
+  const r2=Math.hypot(hx,hz);
+  if(p.y<rim.y&&p.y>rim.y-.45&&r2<.24){v.x*=1-6*dt;v.z*=1-6*dt;v.y*=1-2.5*dt;if(r2>.12){p.x-=hx*3*dt;p.z-=hz*3*dt;}}
+  if(B.s==='fly'&&py>=rim.y&&p.y<rim.y&&v.y<0&&!st.cross)st.cross=[+hx.toFixed(3),+hz.toFixed(3)];
+  if(B.s==='fly'&&!st.scored&&py>=rim.y&&p.y<rim.y&&v.y<0&&r2<RIM_R-BR*.35)made();
+  const FL=body.floor+BR;
+  if(p.y<FL){p.y=FL;if(v.y<0){const s=-v.y;if(s>.8&&st.bcd<=0){sfx.bounce(s);st.bcd=.06;}
     const h=hands[B.hand];
-    if(B.s==='free'&&h.ok){B.vy=Math.sqrt(2*G*Math.max(.2,hp(B.hand).y-BR+.05));B.vx=(h.x-B.x)*2.5;}
-    else{B.vy=s>.5?s*.7:0;B.vx*=.85;}B.spin*=.7;}}
+    if(B.s==='free'&&h.ok){v.y=Math.sqrt(2*G*Math.max(.2,hp(B.hand).y-FL+.05));v.x=(h.p.x-p.x)*2.5;v.z=(h.p.z-p.z)*2.5;}
+    else{v.y=s>.5?s*.7:0;v.x*=.85;v.z*=.85;}B.w*=.7;}}
 }
 
 /* ===== pose ===== */
 let lmk=null,lastVT=-1,stream=null,camOn=false;
-const BONES=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28],[27,31],[28,32],[15,19],[16,20]];
 let cover={ox:0,oy:0,dw:1,dh:1};
 function calcCover(){const vw=vid.videoWidth||640,vh=vid.videoHeight||480,s=Math.max(W/vw,H/vh);cover={dw:vw*s,dh:vh*s,ox:(W-vw*s)/2,oy:(H-vh*s)/2};}
 const toS=l=>({x:cover.ox+(1-l.x)*cover.dw,y:cover.oy+l.y*cover.dh,v:l.visibility==null?1:l.visibility});   // mirrored selfie view
@@ -259,26 +253,27 @@ function detect(){
   if(!L){lose();return;}
   calcCover();processPose(L.map(toS));
 }
-function lose(){body.ok=false;body.lm=null;for(const i of [15,16]){const h=hands[i];h.ok=false;h.h=[];h.vx=h.vy=0;}st.phase='idle';st.upN=0;}
+function lose(){body.ok=false;for(const i of [15,16]){const h=hands[i];h.ok=false;h.h=[];h.vx=h.vy=0;}st.phase='idle';st.upN=0;}
 const ok=p=>p&&p.v>.5&&p.x>-20&&p.x<W+20&&p.y>-20&&p.y<H+20;
 function processPose(P){
-  body.lm=P;body.ok=ok(P[11])&&ok(P[12]);
+  body.ok=ok(P[11])&&ok(P[12]);
   if(!body.ok){lose();return;}
   const sh={x:(P[11].x+P[12].x)/2,y:(P[11].y+P[12].y)/2};
   const ank=ok(P[27])&&ok(P[28]),hip=ok(P[23])&&ok(P[24]);
   body.full=ank;
-  let ppm=body.ppm,floor=body.floorY;
-  if(ank){const ay=Math.max(P[27].y,P[28].y),ax=(P[27].x+P[28].x)/2;ppm=Math.hypot(ax-sh.x,ay-sh.y)/TORSO_LEG;floor=ay+.07*ppm;}
-  else if(hip){const hy=(P[23].y+P[24].y)/2;ppm=Math.abs(hy-sh.y)/.5;floor=sh.y+TORSO_LEG*ppm+.07*ppm;}
-  body.ppm=body.ppm*.8+ppm*.2;body.floorY=body.floorY*.8+floor*.2;body.cx=W/2;
-  body.shoulderY=toPlane(0,sh.y).y;
+  let ppm=body.ppm,floorY=null;
+  if(ank){const ay=Math.max(P[27].y,P[28].y),ax=(P[27].x+P[28].x)/2;ppm=Math.hypot(ax-sh.x,ay-sh.y)/TORSO_LEG;floorY=ay+.07*ppm;}
+  else if(hip){const hy=(P[23].y+P[24].y)/2;ppm=Math.abs(hy-sh.y)/.5;floorY=sh.y+(TORSO_LEG+.07)*ppm;}
+  body.ppm=body.ppm*.8+ppm*.2;body.Zp=Math.max(1.2,Math.min(6,F/body.ppm));
+  if(floorY!=null){const fy=-(floorY-H/2)/F*body.Zp;body.floor=body.floor*.8+fy*.2;}
+  body.shoulderY=-(sh.y-H/2)/F*body.Zp;
   layoutHoop();
-  const now=st.now*1000;
+  const now=st.now*1000,Zh=body.Zp-0.25;   // hands a little in front of the body
   for(const [i,ix] of [[15,19],[16,20]]){
     const w=P[i],f=P[ix],hd=hands[i];
     if(!ok(w)){hd.ok=false;hd.h=[];hd.vx=hd.vy=0;continue;}
-    const sx=ok(f)?(w.x+f.x)/2:w.x,sy=ok(f)?(w.y+f.y)/2:w.y,q=toPlane(sx,sy);
-    hd.ok=true;hd.x=q.x;hd.y=q.y;hd.h.push({t:now,x:q.x,y:q.y});
+    const sx=ok(f)?(w.x+f.x)/2:w.x,sy=ok(f)?(w.y+f.y)/2:w.y;
+    hd.p.copy(unproj(sx,sy,Zh));hd.ok=true;hd.h.push({t:now,x:hd.p.x,y:hd.p.y});
     while(hd.h.length>2&&now-hd.h[0].t>130)hd.h.shift();
     if(hd.h.length>=2){const a=hd.h[0],b=hd.h[hd.h.length-1],dt=(b.t-a.t)/1000;
       if(dt>.025){const vx=(b.x-a.x)/dt,vy=(b.y-a.y)/dt;if(Math.hypot(vx,vy)<12){hd.vx=vx;hd.vy=vy;}else{hd.h=[b];hd.vx=hd.vy=0;}}}
@@ -298,20 +293,16 @@ function gestures(){
       if(up>st.peak){st.peak=up;st.pvx=h.vx;}
       gauge(st.peak/IDEAL);
       if(up<st.peak*.5||st.now-st.riseT>.45){
-        if(h.y>body.shoulderY-.1){
-          // aim: how far the push leans toward (+) or away from (-) the hoop changes the angle a little
-          const lean=Math.atan2(st.pvx*side,st.peak);
-          shoot(Math.max(.4,Math.min(2,st.peak/IDEAL)),-lean*.15);
-        }
+        if(h.p.y>body.shoulderY-.1)shoot(Math.max(.4,Math.min(2,st.peak/IDEAL)),Math.atan2(st.pvx,st.peak)*.3);
         st.phase='idle';st.upN=0;gauge(null);st.cd=.6;
       }
     }
   }
   if(B.s==='free'){
     for(const i of [B.hand,B.hand===15?16:15]){const h=hands[i];if(!h.ok)continue;
-      const p=hp(i),dx=B.x-p.x,dy=B.y-p.y,dist=Math.hypot(dx,dy);
-      if(dist<.2&&B.vy>-1.5&&st.ccd<=0){attach(i);sfx.catch();st.ccd=.1;return;}
-      if(Math.abs(B.x-h.x)<.2&&h.y>B.y&&h.y-B.y<.35&&h.vy<-.8&&B.vy>h.vy*1.2){B.vy=h.vy*1.35;B.vx=h.vx*.4;B.hand=i;B.fromDrib=true;}
+      const p=hp(i),dx=B.p.x-p.x,dy=B.p.y-p.y,dz=(B.p.z-p.z)*.5,dist=Math.hypot(dx,dy,dz);
+      if(dist<.2&&B.v.y>-1.5&&st.ccd<=0){attach(i);sfx.catch();st.ccd=.1;return;}
+      if(Math.abs(B.p.x-h.p.x)<.2&&h.p.y>B.p.y&&h.p.y-B.p.y<.35&&h.vy<-.8&&B.v.y>h.vy*1.2){B.v.y=h.vy*1.35;B.v.x=h.vx*.4;B.hand=i;B.fromDrib=true;}
     }
   }
 }
@@ -320,15 +311,6 @@ function gestures(){
 function drawVideo(c){
   if(vid.readyState<2)return;const{ox,oy,dw,dh}=cover;
   c.save();c.translate(W,0);c.scale(-1,1);c.drawImage(vid,W-ox-dw,oy,dw,dh);c.restore();
-}
-function drawSkeleton(){
-  const P=body.lm;if(!P)return;
-  bx.save();bx.lineCap='round';bx.lineWidth=Math.max(3,body.ppm*.03);bx.strokeStyle='rgba(120,240,255,.85)';bx.shadowColor='#5ff';bx.shadowBlur=10;
-  bx.beginPath();for(const[a,b]of BONES){if(ok(P[a])&&ok(P[b])){bx.moveTo(P[a].x,P[a].y);bx.lineTo(P[b].x,P[b].y);}}bx.stroke();
-  bx.shadowBlur=0;bx.fillStyle='#fff';for(const i of [0,11,12,13,14,15,16,23,24,25,26,27,28])if(ok(P[i])){bx.beginPath();bx.arc(P[i].x,P[i].y,bx.lineWidth*.9,0,7);bx.fill();}
-  // floor line
-  if(body.full){bx.strokeStyle='rgba(255,255,255,.25)';bx.lineWidth=2;bx.setLineDash([10,10]);bx.beginPath();bx.moveTo(0,body.floorY);bx.lineTo(W,body.floorY);bx.stroke();bx.setLineDash([]);}
-  bx.restore();
 }
 
 /* ===== loop ===== */
@@ -342,27 +324,26 @@ function frame(t){
 }
 function update(dt){
   st.now+=dt;st.cd-=dt;st.bcd-=dt;st.ccd-=dt;
-  if(st.count>0){st.count-=dt;const n=Math.ceil(st.count);$('cd').textContent=st.count>0?n:'';if(st.count<=0){st.run=true;sfx.beep(990);}else if(Math.ceil(st.count+dt)!==n)sfx.beep(660);}
+  if(st.count>0){const before=Math.ceil(st.count);st.count-=dt;const n=Math.ceil(st.count);$('cd').textContent=st.count>0?n:'';if(st.count<=0){st.run=true;sfx.beep(990);}else if(n!==before)sfx.beep(660);}
   if(st.run&&st.mode==='60'){st.time-=dt;if(st.time<=0){st.time=0;endGame();}$('timer').textContent=Math.ceil(st.time);}
   if(B.s==='held'){const h=hands[B.hand];
-    if(h.ok){const p=hp(B.hand),k=1-Math.exp(-35*dt);B.x+=(p.x-B.x)*k;B.y+=(p.y-B.y)*k;B.spin=0;}
-    else{B.s='free';B.vx=B.vy=0;}
+    if(h.ok){B.p.lerp(hp(B.hand),1-Math.exp(-35*dt));B.w=0;}
+    else{B.s='free';B.v.set(0,0,0);}
   }else if(B.s==='free'||B.s==='fly'){
     const n=Math.ceil(dt/.004);for(let i=0;i<n;i++)step(dt/n);
-    if(B.s==='fly'){st.flightT+=dt;const[sx]=toScreen(B.x,B.y);
-      if((st.scored&&st.flightT>1.3)||st.flightT>3.5||(B.y<=BR+.01&&Math.abs(B.vy)<.4)||sx<-200||sx>W+200){if(!st.scored)missed();B.s='none';}}
-    else{const resting=B.y<=BR+.01&&Math.abs(B.vy)<.3;B.rest=resting?B.rest+dt:0;
-      if(B.rest>.8||!hands[B.hand].ok&&!hands[B.hand===15?16:15].ok){B.rest+=dt;if(B.rest>1.5){B.s='none';B.rest=0;}}}
+    if(B.s==='fly'){st.flightT+=dt;
+      if((st.scored&&st.flightT>1.3)||st.flightT>3.5||B.p.z>-.4||(B.p.y<=body.floor+BR+.01&&Math.abs(B.v.y)<.4)){if(!st.scored)missed();B.s='none';}}
+    else{const resting=B.p.y<=body.floor+BR+.01&&Math.abs(B.v.y)<.3;B.rest=resting?B.rest+dt:0;
+      if(B.rest>.8||!hands[15].ok&&!hands[16].ok){B.rest+=dt;if(B.rest>1.5){B.s='none';B.rest=0;}}}
   }
   if(B.s==='none'&&(hands[15].ok||hands[16].ok))respawn();
-  B.rot+=B.spin*dt;B.pop=Math.max(0,B.pop-dt);updNet(dt);
+  if(B.w)ballM.rotateOnWorldAxis(B.ax,B.w*dt);
+  B.pop=Math.max(0,B.pop-dt);updNet(dt);
 }
 function render(){
   bx.clearRect(0,0,W,H);
-  if(camOn){drawVideo(bx);drawSkeleton();}
-  const s=s3();
-  hoop.position.copy(to3(rim.x,rim.y));hoop.scale.setScalar(s);
-  ballM.position.copy(to3(B.x,B.y));ballM.scale.setScalar(BR*s*Math.max(.3,1-B.pop*1.6));ballM.rotation.z=B.rot;ballM.visible=B.s!=='none';
+  if(camOn)drawVideo(bx);
+  ballM.position.copy(B.p);ballM.scale.setScalar(Math.max(.3,1-B.pop*1.6));ballM.visible=B.s!=='none';
   ren.render(scene,cam);
   if(!camOn)return;
   if(!body.ok)hint('退後，讓全身入鏡',true);
@@ -374,19 +355,20 @@ function render(){
   else if(B.s==='fly')hint('…');
 }
 requestAnimationFrame(frame);
+layoutHoop();
 
 /* ===== test hook: fake body (no camera) ===== */
 function fakePose(cx,footY,heightPx,lh,rh){
-  const u=heightPx/1.7,P=[];for(let i=0;i<33;i++)P.push({x:cx,y:footY-u*1.0,v:.2});
+  const u=heightPx/1.7,P=[];for(let i=0;i<33;i++)P.push({x:cx,y:footY-u,v:.2});
   const s=(i,dx,hy)=>{P[i]={x:cx+dx*u,y:footY-hy*u,v:.99};};
-  s(0,0,1.6);s(11,-.2,1.42);s(12,.2,1.42);s(13,-.28,1.15);s(14,.28,1.15);s(23,-.12,.92);s(24,.12,.92);s(25,-.12,.5);s(26,.12,.5);s(27,-.12,.07);s(28,.12,.07);s(31,-.15,0);s(32,.15,0);
+  s(0,0,1.6);s(11,-.2,1.42);s(12,.2,1.42);s(13,-.28,1.15);s(14,.28,1.15);s(23,-.12,.92);s(24,.12,.92);s(25,-.12,.5);s(26,.12,.5);s(27,-.12,.07);s(28,.12,.07);
   P[15]={x:lh[0],y:lh[1],v:.99};P[19]={x:lh[0],y:lh[1]-u*.08,v:.99};P[16]={x:rh[0],y:rh[1],v:.99};P[20]={x:rh[0],y:rh[1]-u*.08,v:.99};
   return P;}
 window.__AH={
   start(mode){camOn=true;Object.assign(st,{mode:mode||'free',run:true,score:0,made:0,shots:0,streak:0,time:60,phase:'idle',count:0});B.s='none';hud();$('start').classList.add('hide');},
   pose(cx,footY,hpx,lh,rh){processPose(fakePose(cx,footY,hpx,lh,rh));},
-  lose(){lose();},test(on){testMode=on;},step(dt){update(dt);},side(v){side=v;layoutHoop();},
-  info(){return {W,H,ppm:+body.ppm.toFixed(1),floorY:+body.floorY.toFixed(1),rim:[+rim.x.toFixed(2),+rim.y.toFixed(2)],s:B.s,hand:B.hand,b:[+B.x.toFixed(3),+B.y.toFixed(3)],score:st.score,made:st.made,shots:st.shots,phase:st.phase,now:st.now,cross:st.cross,k:st.lastK,rimHit:st.tRim,board:st.tBoard,h16:[+hands[16].x.toFixed(2),+hands[16].y.toFixed(2),+hands[16].vy.toFixed(2)]};}
+  lose(){lose();},test(on){testMode=on;},step(dt){update(dt);},
+  info(){const r=v=>v.toArray().map(x=>+x.toFixed(2));return {W,H,ppm:+body.ppm.toFixed(1),Zp:+body.Zp.toFixed(2),floor:+body.floor.toFixed(2),rim:r(rim),s:B.s,hand:B.hand,b:r(B.p),score:st.score,made:st.made,shots:st.shots,phase:st.phase,cross:st.cross,k:st.lastK,rimHit:st.tRim,board:st.tBoard,dist:st.dist};}
 };
 
 /* ===== camera ===== */
@@ -423,15 +405,11 @@ function endGame(){
 }
 
 /* ===== menu ===== */
-function seg(id,fn){const el=$(id);el.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;el.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));fn(b.dataset.v);});}
-seg('segSide',v=>{side=+v;layoutHoop();});
 $('b60').addEventListener('click',()=>begin('60'));
 $('bfree').addEventListener('click',()=>begin('free'));
 $('again').addEventListener('click',()=>begin('60'));
 $('home').addEventListener('click',()=>{$('end').classList.add('hide');$('start').classList.remove('hide');showBest();st.run=false;});
 $('pMenu').addEventListener('click',()=>{st.run=false;$('start').classList.remove('hide');showBest();});
-$('pSide').addEventListener('click',()=>{side=-side;layoutHoop();$('segSide').querySelectorAll('button').forEach(x=>x.classList.toggle('on',+x.dataset.v===side));});
-layoutHoop();
 </script>
 </body>
 </html>

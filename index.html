@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>空氣投籃 AR</title>
+<title>空氣投籃 全身版</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;900&display=swap" rel="stylesheet">
 <style>
 /*
-VOICE: 街頭球場的即興感，鏡頭裡的你就是主角
-IDEA: 跟虛擬二胡一樣：鏡頭全螢幕，3D 球放在你真實的手掌上，手指蓋在球前面
-PICTURE: 相機畫面 + 浮在空中的 3D 籃框 + 手上的籃球
-COLOUR and TYPE: 相機原色為底，橘紅球框、白字黑影；Noto Sans TC 900
-LAYOUT: 全螢幕，只有上方分數、右側力道條、中央提示；操作全靠手勢
+VOICE: 客廳變球場，退後兩步就開打
+IDEA: 自拍鏡頭像鏡子，骨架線描出你的身體，3D 籃框掛在畫面上方一側
+PICTURE: 鏡像的你 + 發亮的骨架 + 黏在手上的 3D 球 + 3/4 視角的籃框
+COLOUR and TYPE: 相機原色為底，骨架青白、球框橘紅；Noto Sans TC 900
+LAYOUT: 全螢幕，只有分數、計時、力道條與一行提示；操作全靠身體
 */
 :root{color-scheme:dark;--hot:#ff5a1f;--ok:#3ee07a}
 *{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
@@ -23,26 +23,26 @@ canvas.layer{position:fixed;inset:0;width:100%;height:100%;display:block;pointer
 .score span,.right span{font-size:13px;opacity:.85}
 .right{text-align:right}.right b{display:block;font:900 26px/1.1 "Noto Sans TC",sans-serif}
 #streak{color:var(--hot)}
-#pop{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);font:900 42px/1.1 "Noto Sans TC",sans-serif;text-align:center;pointer-events:none;opacity:0;text-shadow:0 4px 14px #000;white-space:nowrap;z-index:3}
-#pop small{display:block;font-size:17px;font-weight:500;color:#ffe2d4}
+#pop{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%);font:900 46px/1.1 "Noto Sans TC",sans-serif;text-align:center;pointer-events:none;opacity:0;text-shadow:0 4px 14px #000;white-space:nowrap;z-index:3}
+#pop small{display:block;font-size:18px;font-weight:500;color:#ffe2d4}
 #pop.on{animation:pop 1.2s ease-out}
 @keyframes pop{0%{opacity:0;transform:translate(-50%,-30%) scale(.7)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-80%)}}
-#gauge{position:fixed;right:14px;top:28%;height:40%;width:16px;border-radius:9px;background:#0009;border:2px solid #fff7;overflow:hidden;opacity:0;transition:opacity .15s;pointer-events:none;z-index:3}
-#gauge.on{opacity:1}#gauge i{position:absolute;left:0;right:0;bottom:0;height:0;background:var(--hot)}
-#gauge em{position:absolute;left:0;right:0;height:8%;bottom:48.6%;background:var(--ok);opacity:.85}
+#gauge{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);width:min(60vw,280px);height:14px;border-radius:8px;background:#0009;border:2px solid #fff7;overflow:hidden;opacity:0;transition:opacity .15s;pointer-events:none;z-index:3}
+#gauge.on{opacity:1}#gauge i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--hot)}
+#gauge em{position:absolute;top:0;bottom:0;width:8%;left:46%;background:var(--ok);opacity:.85}
 #gauge.good i{background:var(--ok)}
-#hint{position:fixed;left:16px;right:16px;bottom:22px;text-align:center;font-size:15px;text-shadow:0 2px 6px #000;pointer-events:none;z-index:3}
+#hint{position:fixed;left:16px;right:16px;bottom:18px;text-align:center;font-size:15px;text-shadow:0 2px 6px #000;pointer-events:none;z-index:3}
 #hint b{display:inline-block;background:#000a;border-radius:20px;padding:6px 14px;font-weight:500}
 #hint.need b{background:var(--hot)}
-.pills{position:fixed;left:12px;bottom:70px;display:flex;flex-direction:column;gap:8px;z-index:4}
+.pills{position:fixed;right:12px;top:110px;display:flex;flex-direction:column;gap:8px;z-index:4}
 .pills button,.btn{font:500 14px "Noto Sans TC",sans-serif;color:#fff;background:#000a;border:1.5px solid #fff6;border-radius:22px;min-height:44px;padding:0 14px;cursor:pointer}
 .ov{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(circle at 50% 25%,#3a1d10f0,#0b0807f7);padding:22px;z-index:10;overflow:auto}
 .ov.hide{display:none}
-.card{max-width:390px;width:100%;text-align:center}
-.card h1{font:900 46px/1.05 "Noto Sans TC",sans-serif;margin:0 0 8px}
+.card{max-width:400px;width:100%;text-align:center}
+.card h1{font:900 44px/1.05 "Noto Sans TC",sans-serif;margin:0 0 8px}
 .card h1 span{color:var(--hot)}
 .card p{margin:0 0 16px;opacity:.88}
-.how{text-align:left;display:grid;gap:10px;margin:0 0 18px;padding:0;list-style:none}
+.how{text-align:left;display:grid;gap:10px;margin:0 0 16px;padding:0;list-style:none}
 .how li{display:grid;grid-template-columns:48px 1fr;gap:12px;align-items:center;background:#ffffff12;border-radius:12px;padding:10px 12px;font-size:15px}
 .how svg{width:48px;height:48px}
 .row{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;margin:10px 0;font-size:14px;text-align:left}
@@ -55,40 +55,40 @@ canvas.layer{position:fixed;inset:0;width:100%;height:100%;display:block;pointer
 #msg{color:#ffb199;font-size:14px;min-height:1.2em;margin-top:10px}
 #best{font-size:14px;opacity:.75;margin-top:12px}
 #fscore{display:block;font:900 64px/1 "Noto Sans TC",sans-serif;color:var(--hot);margin:8px 0}
+#cd{position:fixed;inset:0;display:grid;place-items:center;font:900 120px/1 "Noto Sans TC",sans-serif;text-shadow:0 6px 20px #000;pointer-events:none;z-index:5}
 </style>
 </head>
 <body>
 <video id="vid" playsinline muted autoplay></video>
 <canvas id="bg" class="layer"></canvas>
 <canvas id="gl" class="layer"></canvas>
-<canvas id="fg" class="layer"></canvas>
 
 <div class="hud">
   <div class="score"><span>分數</span><b id="score">0</b><span id="acc">0 / 0 投</span></div>
   <div class="right"><span id="tlab">練習</span><b id="timer">∞</b><b id="streak"></b></div>
 </div>
 <div id="pop"></div>
+<div id="cd"></div>
 <div id="gauge"><em></em><i></i></div>
-<div class="pills"><button id="pDist" type="button">罰球線</button><button id="pFlip" type="button">切換鏡頭</button><button id="pMenu" type="button">選單</button></div>
-<div id="hint"><b>把左手伸到鏡頭前</b></div>
+<div class="pills"><button id="pSide" type="button">籃框換邊</button><button id="pMenu" type="button">選單</button></div>
+<div id="hint"><b>退後，讓全身入鏡</b></div>
 
 <div class="ov" id="start">
   <div class="card">
-    <h1>空氣投籃 <span>AR</span></h1>
-    <p>右手拿手機，後鏡頭對著前方；左手伸出食指，籃球就頂在你指尖上。</p>
+    <h1>空氣投籃 <span>全身版</span></h1>
+    <p>把手機立在地上或架子上，自拍鏡頭對著你，退後 2–3 步讓頭到腳都入鏡。</p>
     <ul class="how">
-      <li><svg viewBox="0 0 48 48"><path d="M10 34c4 4 24 4 28 0" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round"/><circle cx="24" cy="20" r="10" fill="#ff5a1f"/></svg><div><b>伸出食指</b>：球會黏在食指尖上轉，手指動球就跟著動。</div></li>
-      <li><svg viewBox="0 0 48 48"><circle cx="24" cy="12" r="7" fill="#ff5a1f"/><path d="M24 22v14M17 30l7 7 7-7" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 44h28" stroke="#fff8" stroke-width="3" stroke-linecap="round"/></svg><div><b>手往下拍</b>：運球。球彈回來時手放在原處就接得到，連續拍就是連續運球。</div></li>
-      <li><svg viewBox="0 0 48 48"><path d="M24 42V12M14 21l10-10 10 10" stroke="#3ee07a" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>手快速往上推</b>：投籃。推得越快越遠，往左往右推會偏。運球後馬上投 = 急停跳投 +1。</div></li>
+      <li><svg viewBox="0 0 48 48"><circle cx="24" cy="8" r="5" fill="#fff"/><path d="M24 14v16M24 30l-7 14M24 30l7 14M24 19l-10 7M24 19l9 -6" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="36" cy="10" r="5" fill="#ff5a1f"/></svg><div><b>全身入鏡</b>：畫面會描出你的骨架，球黏在你手上。</div></li>
+      <li><svg viewBox="0 0 48 48"><circle cx="24" cy="12" r="7" fill="#ff5a1f"/><path d="M24 22v14M17 30l7 7 7-7" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 44h28" stroke="#fff8" stroke-width="3" stroke-linecap="round"/></svg><div><b>手往下拍</b>：運球。球彈回來時把手放回原處就接住，可以一直運。</div></li>
+      <li><svg viewBox="0 0 48 48"><path d="M24 42V12M14 21l10-10 10 10" stroke="#3ee07a" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>手快速往上推過頭</b>：投籃，球會飛向籃框。推的速度決定力道，看下方力道條。運球後馬上投 = 急停跳投 +1。</div></li>
     </ul>
-    <div class="row"><span>鏡頭</span><div class="seg" id="segCam"><button type="button" data-v="environment" class="on">後鏡頭</button><button type="button" data-v="user">前鏡頭</button></div></div>
-    <div class="row"><span>距離</span><div class="seg" id="segDist"><button type="button" data-v="0">近</button><button type="button" data-v="1" class="on">罰球線</button><button type="button" data-v="2">三分</button></div></div>
+    <div class="row"><span>籃框位置</span><div class="seg" id="segSide"><button type="button" data-v="-1">左邊</button><button type="button" data-v="1" class="on">右邊</button></div></div>
     <div class="row"><span>力道靈敏度</span><input type="range" id="sens" min="0.5" max="2" step="0.05" value="1"></div>
     <button class="btn main" id="b60" type="button">開鏡頭 · 60 秒挑戰</button>
     <button class="btn" id="bfree" type="button">開鏡頭 · 自由練習</button>
     <div id="msg"></div>
     <div id="best"></div>
-    <div style="font-size:12px;opacity:.5;margin-top:8px">版本 v5 · 食指版</div>
+    <div style="font-size:12px;opacity:.5;margin-top:8px">版本 v6 · 全身骨架版</div>
   </div>
 </div>
 <div class="ov hide" id="end">
@@ -103,63 +103,69 @@ canvas.layer{position:fixed;inset:0;width:100%;height:100%;display:block;pointer
 <script type="module">
 const $=id=>document.getElementById(id);
 const msg=t=>{$('msg').textContent=t;};
-if(!window.THREE)msg('3D 載入失敗，請確認網路後重新整理。');
 const T=window.THREE;
+if(!T)msg('3D 載入失敗，請確認網路後重新整理。');
 const V='0.10.14';
 let vision=null;
-import(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${V}/vision_bundle.mjs`).then(m=>vision=m).catch(()=>msg('手部辨識模組載入失敗，請檢查網路。'));
+import(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${V}/vision_bundle.mjs`).then(m=>vision=m).catch(()=>msg('姿勢辨識模組下載失敗，請檢查網路。'));
 
-/* ===== constants (meters, camera at origin looking -z) ===== */
-const G=9.81,BR=0.12,RIM_R=0.2286,TUBE=0.012,FLOOR=-1.25,RIM_Y=3.05+FLOOR,PALM=0.085,FOV=62;
-const DISTS=[[3.2,'近距離',2],[4.6,'罰球線',2],[6.9,'三分線',3]];
-let distI=1,RIM=new T.Vector3(0,RIM_Y,-DISTS[1][0]),BOARD_Z=RIM.z-0.375;
+/* ===== world: a vertical plane at the player's depth, meters, floor y=0, x right ===== */
+const G=9.81,BR=0.12,RIM_R=0.2286,TUBE=0.02,TORSO_LEG=1.30;
+let side=1;           // hoop on screen right (1) or left (-1)
+const rim={x:1.5,y:2.4};
 
 /* ===== layers ===== */
-const vid=$('vid'),bg=$('bg'),bx=bg.getContext('2d'),fg=$('fg'),fx=fg.getContext('2d');
+const vid=$('vid'),bg=$('bg'),bx=bg.getContext('2d');
 const ren=new T.WebGLRenderer({canvas:$('gl'),alpha:true,antialias:true});
 ren.setPixelRatio(Math.min(devicePixelRatio||1,1.5));ren.outputEncoding=T.sRGBEncoding;
-const scene=new T.Scene(),cam=new T.PerspectiveCamera(FOV,1,0.05,60);
+const scene=new T.Scene(),cam=new T.PerspectiveCamera(50,1,0.1,100);
 scene.add(new T.HemisphereLight(0xffffff,0x553322,1.0));
-const dl=new T.DirectionalLight(0xffffff,0.8);dl.position.set(2,4,3);scene.add(dl);
-let W=1,H=1,F=1,DPR=1;
+const dl=new T.DirectionalLight(0xffffff,.8);dl.position.set(-2,4,3);scene.add(dl);
+let W=1,H=1,F=1,DPR=1;const D0=6;
 function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,1.5);
-  for(const c of [bg,fg]){c.width=W*DPR;c.height=H*DPR;c.getContext('2d').setTransform(DPR,0,0,DPR,0,0);}
-  ren.setSize(W,H,false);cam.aspect=W/H;cam.fov=FOV;cam.updateProjectionMatrix();F=(H/2)/Math.tan(FOV*Math.PI/360);}
+  bg.width=W*DPR;bg.height=H*DPR;bx.setTransform(DPR,0,0,DPR,0,0);
+  ren.setSize(W,H,false);cam.aspect=W/H;cam.updateProjectionMatrix();F=(H/2)/Math.tan(25*Math.PI/180);}
 addEventListener('resize',resize);resize();
-const unproj=(sx,sy,d)=>new T.Vector3((sx-W/2)/F*d,-(sy-H/2)/F*d,-d);
-const proj=p=>[W/2+p.x/-p.z*F,H/2-p.y/-p.z*F,BR/-p.z*F];
 
-/* ===== hoop ===== */
+/* body-derived mapping between screen px and plane meters */
+const body={ok:false,full:false,ppm:300,floorY:0,cx:0,shoulderY:0,lm:null};
+function setDefaults(){body.ppm=H*0.8/1.75;body.floorY=H*0.95;body.cx=W/2;}
+setDefaults();
+const toPlane=(sx,sy)=>({x:(sx-body.cx)/body.ppm,y:(body.floorY-sy)/body.ppm});
+const toScreen=(x,y)=>[body.cx+x*body.ppm,body.floorY-y*body.ppm];
+const s3=()=>D0/F*body.ppm;   // three units per meter on the plane
+const to3=(x,y)=>{const[sx,sy]=toScreen(x,y);return new T.Vector3((sx-W/2)/F*D0,-(sy-H/2)/F*D0,-D0);};
+
+/* ===== hoop (built in meters, origin at rim center) ===== */
 const hoop=new T.Group();scene.add(hoop);
 const metal=new T.MeshStandardMaterial({color:0x2b2b30,metalness:.6,roughness:.4});
 const rimMat=new T.MeshStandardMaterial({color:0xff4a12,metalness:.4,roughness:.35,emissive:0x501400});
-const boardM=new T.Mesh(new T.BoxGeometry(1.8,1.05,0.03),new T.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:.55,roughness:.2}));
-const rimM=new T.Mesh(new T.TorusGeometry(RIM_R,0.017,10,48),rimMat);rimM.rotation.x=Math.PI/2;
-const brk=new T.Mesh(new T.BoxGeometry(0.12,0.04,0.16),rimMat);
-const pole=new T.Mesh(new T.CylinderGeometry(0.09,0.11,3.6,14),metal);
-const arm=new T.Mesh(new T.BoxGeometry(0.1,0.1,1.2),metal);
-const lineM=new T.LineBasicMaterial({color:0xff3b1f});
-const rect=(w,h,cy)=>new T.Line(new T.BufferGeometry().setFromPoints([[-1,-1],[1,-1],[1,1],[-1,1],[-1,-1]].map(p=>new T.Vector3(p[0]*w/2,cy+p[1]*h/2,0.017))),lineM);
-const boardG=new T.Group();boardG.add(boardM,rect(1.76,1.01,0),rect(0.59,0.45,-0.145));
-hoop.add(boardG,rimM,brk,pole,arm);
+const rimM=new T.Mesh(new T.TorusGeometry(RIM_R,0.018,10,48),rimMat);rimM.rotation.x=Math.PI/2;
+const boardG=new T.Group();
+const boardM=new T.Mesh(new T.BoxGeometry(0.03,1.05,1.8),new T.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:.7,roughness:.2}));
+const lm1=new T.LineBasicMaterial({color:0xff3b1f});
+const sq=new T.Line(new T.BufferGeometry().setFromPoints([[-1,-1],[1,-1],[1,1],[-1,1],[-1,-1]].map(p=>new T.Vector3(-0.017,0.23+p[1]*.225,p[0]*.295))),lm1);
+boardG.add(boardM,sq);
+const brk=new T.Mesh(new T.BoxGeometry(0.16,0.04,0.12),rimMat);
+const arm=new T.Mesh(new T.BoxGeometry(0.6,0.08,0.08),metal);
+hoop.add(rimM,boardG,brk,arm);
 const NS=14,LV=[[0,.225],[-.15,.2],[-.29,.175],[-.43,.15]],netBase=[],netIdx=[];
 for(let L=0;L<LV.length;L++)for(let i=0;i<NS;i++){const a=(i+L*.5)/NS*Math.PI*2;netBase.push([Math.cos(a),LV[L][0],Math.sin(a),LV[L][1],L]);}
 for(let L=0;L<LV.length-1;L++)for(let i=0;i<NS;i++){const a=L*NS+i;netIdx.push(a,(L+1)*NS+i,a,(L+1)*NS+(i+NS-1)%NS);}
 const netPos=new Float32Array(netBase.length*3),netGeo=new T.BufferGeometry();
 netGeo.setAttribute('position',new T.BufferAttribute(netPos,3));netGeo.setIndex(netIdx);
-const net=new T.LineSegments(netGeo,new T.LineBasicMaterial({color:0xffffff}));hoop.add(net);
+hoop.add(new T.LineSegments(netGeo,new T.LineBasicMaterial({color:0xffffff})));
 let netKick=0,netT=0;
-function placeHoop(){
-  RIM.set(0,RIM_Y,-DISTS[distI][0]);BOARD_Z=RIM.z-0.375;
-  rimM.position.copy(RIM);brk.position.set(0,RIM_Y,BOARD_Z+0.075);
-  boardG.position.set(0,RIM_Y+0.375,BOARD_Z-0.015);
-  pole.position.set(0,FLOOR+1.8,BOARD_Z-1.1);arm.position.set(0,RIM_Y+0.3,BOARD_Z-0.55);
-  net.position.copy(RIM);$('pDist').textContent=DISTS[distI][1];
+function layoutHoop(){
+  // rim near the top corner of the screen, inside the frame
+  const sx=W/2+side*(W/2-Math.max(70,W*.2)),sy=Math.max(120,H*.2);
+  const p=toPlane(sx,sy);rim.x=p.x;rim.y=p.y;
+  boardG.position.set(side*(RIM_R+0.15),0.3,0);brk.position.set(side*(RIM_R+0.06),0,0);arm.position.set(side*(RIM_R+0.47),0.3,0);
+  hoop.rotation.set(0.28,-side*0.55,0);
 }
-placeHoop();
 function updNet(dt){netKick*=Math.exp(-3.5*dt);netT+=dt;
-  for(let k=0;k<netBase.length;k++){const[cx,y,cz,r,L]=netBase[k],f=L/3,sq=1-netKick*.35*f,w=Math.sin(netT*18)*netKick*.03*f;
-    netPos[k*3]=cx*r*sq+w;netPos[k*3+1]=y-netKick*.12*f;netPos[k*3+2]=cz*r*sq;}
+  for(let k=0;k<netBase.length;k++){const[cx,y,cz,r,L]=netBase[k],f=L/3,q=1-netKick*.35*f,w=Math.sin(netT*18)*netKick*.03*f;
+    netPos[k*3]=cx*r*q+w;netPos[k*3+1]=y-netKick*.12*f;netPos[k*3+2]=cz*r*q;}
   netGeo.attributes.position.needsUpdate=true;}
 
 /* ===== ball ===== */
@@ -170,7 +176,7 @@ function ballTex(){const c=document.createElement('canvas');c.width=512;c.height
   for(const u of [128,384]){x.beginPath();x.moveTo(u,0);x.lineTo(u,256);x.stroke();}
   for(const o of [0,256]){x.beginPath();for(let u=0;u<=256;u+=4)x.lineTo(o+u,128+(o?1:-1)*100*Math.sin(u/256*Math.PI));x.stroke();}
   const t=new T.CanvasTexture(c);t.encoding=T.sRGBEncoding;return t;}
-const ballM=new T.Mesh(new T.SphereGeometry(BR,32,24),new T.MeshStandardMaterial({map:ballTex(),roughness:.7}));
+const ballM=new T.Mesh(new T.SphereGeometry(1,32,24),new T.MeshStandardMaterial({map:ballTex(),roughness:.7}));
 scene.add(ballM);
 
 /* ===== audio ===== */
@@ -178,237 +184,253 @@ let ac=null;
 function audio(){if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(ac&&ac.state==='suspended')ac.resume();}
 function tone(f,d,type,vol,f2){if(!ac)return;const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime;o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d);}
 function noise(d,vol,fr){if(!ac)return;const n=ac.sampleRate*d,b=ac.createBuffer(1,n,ac.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*(1-i/n);const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=b;f.type='bandpass';f.frequency.value=fr;f.Q.value=.8;g.gain.value=vol;s.connect(f).connect(g).connect(ac.destination);s.start();}
-const sfx={bounce:v=>{tone(120,.18,'sine',Math.min(.6,.25+v*.06),55);noise(.05,.15,400);},clank:()=>{tone(620,.25,'triangle',.18,540);tone(1450,.12,'square',.04);},board:()=>{tone(180,.12,'square',.08,90);noise(.08,.2,900);},swish:()=>noise(.35,.5,3200),buzz:()=>tone(160,.9,'sawtooth',.15),catch:()=>tone(300,.06,'sine',.15,200)};
+const sfx={bounce:v=>{tone(120,.18,'sine',Math.min(.6,.25+v*.06),55);noise(.05,.15,400);},clank:()=>{tone(620,.25,'triangle',.18,540);tone(1450,.12,'square',.04);},board:()=>{tone(180,.12,'square',.08,90);noise(.08,.2,900);},swish:()=>noise(.35,.5,3200),buzz:()=>tone(160,.9,'sawtooth',.15),catch:()=>tone(300,.06,'sine',.15,200),beep:f=>tone(f,.15,'sine',.25)};
 
 /* ===== state ===== */
-const B={p:new T.Vector3(0,-0.2,-0.5),v:new T.Vector3(),s:'none',ax:new T.Vector3(1,0,0),w:0,rest:0,pop:0,lostT:0,fromDrib:false};
-const st={mode:'free',run:false,score:0,made:0,shots:0,streak:0,time:60,now:0,lastDrib:-9,flightT:0,scored:false,tRim:false,tBoard:false,three:false,off:false,cd:0,bcd:0,ccd:0,phase:'idle',peak:0,peakVx:0,riseT:0};
-const hand={ok:false,p:new T.Vector3(),v:new T.Vector3(),hist:[],lm:null,s:0,lostAt:0};
-let best=0;try{best=+localStorage.getItem('airhoops-ar-best')||0}catch(e){}
+const B={x:0,y:1,vx:0,vy:0,s:'none',hand:16,spin:0,rot:0,rest:0,pop:0,fromDrib:false};
+const st={mode:'free',run:false,score:0,made:0,shots:0,streak:0,time:60,now:0,lastDrib:-9,flightT:0,scored:false,tRim:false,tBoard:false,off:false,cd:0,bcd:0,ccd:0,phase:'idle',peak:0,pvx:0,riseT:0,upN:0,count:0,cross:null,lastK:null};
+const hands={15:{ok:false,x:0,y:0,vx:0,vy:0,h:[]},16:{ok:false,x:0,y:0,vx:0,vy:0,h:[]}};
+let best=0;try{best=+localStorage.getItem('airhoops-body-best')||0}catch(e){}
 const showBest=()=>{$('best').textContent=best?`60 秒最佳：${best} 分`:'';};showBest();
 const sens=()=>+$('sens').value||1;
-const holdPt=()=>hand.p.clone().add(new T.Vector3(0,BR+0.01,0));
+const hp=i=>({x:hands[i].x,y:hands[i].y+BR+0.04});   // ball rests on top of the hand
 
 let lastHint='';function hint(t,need){if(t===lastHint)return;lastHint=t;const h=$('hint');h.innerHTML=`<b>${t}</b>`;h.classList.toggle('need',!!need);}
 function pop(big,small,col){const e=$('pop');e.innerHTML=big+(small?`<small>${small}</small>`:'');e.style.color=col||'#fff';e.classList.remove('on');void e.offsetWidth;e.classList.add('on');}
 function hud(){$('timer').textContent=st.mode==='60'?Math.ceil(st.time):'∞';$('score').textContent=st.score;$('acc').textContent=`${st.made} / ${st.shots} 投`;$('streak').textContent=st.streak>=2?`連進 ${st.streak}`:'';}
-function gauge(k){const g=$('gauge');if(k==null){g.classList.remove('on');return;}g.classList.add('on');g.querySelector('i').style.height=Math.min(100,k/2*100)+'%';g.classList.toggle('good',Math.abs(k-1)<.08);}
+function gauge(k){const g=$('gauge');if(k==null){g.classList.remove('on');return;}g.classList.add('on');g.querySelector('i').style.width=Math.min(100,k/2*100)+'%';g.classList.toggle('good',Math.abs(k-1)<.08);}
 
 /* ===== actions ===== */
-function attach(){B.s='held';B.v.set(0,0,0);B.w=0;if(B.fromDrib){st.lastDrib=st.now;B.fromDrib=false;}}
-function respawn(){if(!hand.ok)return;B.p.copy(holdPt());B.s='held';B.pop=0.35;B.v.set(0,0,0);B.w=0;st.scored=false;}
-function dribble(){B.s='free';B.fromDrib=true;B.v.set(hand.v.x*.5,Math.min(-2.2,hand.v.y*1.35),0);B.ax.set(1,0,0);B.w=-15;}
-function shoot(k,lat){
-  const P=B.p.clone(),Hd=new T.Vector3(RIM.x-P.x,0,RIM.z-P.z),D=Hd.length();Hd.normalize();
-  const h=RIM_Y-P.y,al=Math.atan(Math.tan(50*Math.PI/180)+2*h/D),c=Math.cos(al);
-  let v=Math.sqrt(G*D*D/(2*c*c*(D*Math.tan(al)-h)));v*=1+(k-1)*.085;
-  Hd.applyAxisAngle(new T.Vector3(0,1,0),-lat);
-  B.v.copy(Hd).multiplyScalar(v*c).setY(v*Math.sin(al));
-  B.ax.crossVectors(Hd,new T.Vector3(0,1,0)).normalize();B.w=-14;
-  B.s='fly';st.flightT=0;st.tRim=st.tBoard=st.scored=false;st.cross=null;st.lastK=+k.toFixed(3);st.lastLat=+lat.toFixed(3);
-  st.off=st.now-st.lastDrib<1.0;st.three=DISTS[distI][2]===3;st.shots++;hud();
+function attach(i){B.s='held';B.hand=i;B.vx=B.vy=0;if(B.fromDrib){st.lastDrib=st.now;B.fromDrib=false;}}
+function respawn(){
+  const c=[16,15].filter(i=>hands[i].ok);if(!c.length)return;
+  // the hand farther from the hoop holds the ball
+  c.sort((a,b)=>(hands[a].x-hands[b].x)*side);const i=c[0];
+  const p=hp(i);B.x=p.x;B.y=p.y;B.s='held';B.hand=i;B.pop=.35;B.vx=B.vy=0;st.scored=false;
+}
+function dribble(){const h=hands[B.hand];B.s='free';B.fromDrib=true;B.vx=h.vx*.4;B.vy=Math.min(-2.4,h.vy*1.35);B.spin=-8;}
+function shoot(k,dev){
+  const dx=rim.x-B.x,D=Math.abs(dx),h=rim.y-B.y,dir=Math.sign(dx)||side;
+  const al=Math.atan(Math.tan(50*Math.PI/180)+2*h/Math.max(.3,D)),c=Math.cos(al);
+  const den=2*c*c*(Math.max(.3,D)*Math.tan(al)-h);
+  let v=Math.sqrt(G*Math.max(.3,D)**2/Math.max(.01,den));
+  v*=1+(k-1)*.085;
+  const a2=al+dev;
+  B.vx=dir*v*Math.cos(a2);B.vy=v*Math.sin(a2);
+  B.s='fly';B.spin=dir*-12;st.flightT=0;st.tRim=st.tBoard=st.scored=false;st.cross=null;st.lastK=+k.toFixed(3);
+  st.off=st.now-st.lastDrib<1.0;st.shots++;hud();
 }
 function made(){st.scored=true;st.made++;st.streak++;netKick=1;
-  const sw=!st.tRim&&!st.tBoard;let pts=DISTS[distI][2];const tags=[pts===3?'三分':'兩分'];
+  const sw=!st.tRim&&!st.tBoard,far=Math.abs(rim.x-B.x)>2.2;let pts=far?3:2;const tags=[far?'三分':'兩分'];
   if(sw){pts++;tags.push('空心 +1');}if(st.off){pts++;tags.push('急停跳投 +1');}
   if(st.streak>=5){pts*=2;tags.push('手感發燙 ×2');}
   st.score+=pts;sfx.swish();pop('+'+pts,tags.join(' · '),sw?'#3ee07a':'#fff');hud();}
 function missed(){if(st.streak>=3)pop('斷了','連進 '+st.streak+' 球結束','#ffb199');st.streak=0;hud();}
 
-/* ===== physics ===== */
+/* ===== physics on the plane ===== */
+function circleHit(px,py,r){const dx=B.x-px,dy=B.y-py,d=Math.hypot(dx,dy);if(d<BR+r){const nx=dx/(d||1e-6),ny=dy/(d||1e-6);B.x=px+nx*(BR+r);B.y=py+ny*(BR+r);const vn=B.vx*nx+B.vy*ny;if(vn<0){B.vx-=1.55*vn*nx;B.vy-=1.55*vn*ny;B.vx*=.92;B.vy*=.92;if(-vn>.6&&st.ccd<=0){sfx.clank();st.ccd=.08;}}return true;}return false;}
 function step(dt){
-  const p=B.p,v=B.v,py=p.y;v.y-=G*dt;p.addScaledVector(v,dt);
-  const hx=p.x-RIM.x,hz=p.z-RIM.z,hl=Math.hypot(hx,hz)||1e-6;
-  const q=new T.Vector3(RIM.x+hx/hl*RIM_R,RIM_Y,RIM.z+hz/hl*RIM_R),d=p.clone().sub(q),dl=d.length();
-  if(dl<BR+TUBE){const n=d.divideScalar(dl||1e-6);p.copy(q).addScaledVector(n,BR+TUBE);const vn=v.dot(n);
-    if(vn<0){v.addScaledVector(n,-1.55*vn);v.multiplyScalar(.92);if(-vn>.6&&st.ccd<=0){sfx.clank();st.ccd=.08;}}st.tRim=true;}
-  if(p.z-BR<BOARD_Z&&p.z>BOARD_Z-.15&&Math.abs(p.x)<.95&&p.y>RIM_Y-.2&&p.y<RIM_Y+.95){p.z=BOARD_Z+BR;if(v.z<0){if(-v.z>.8)sfx.board();v.z=-v.z*.6;v.x*=.85;v.y*=.85;}st.tBoard=true;}
-  const r2=Math.hypot(hx,hz);
-  if(p.y<RIM_Y&&p.y>RIM_Y-.45&&r2<.24){v.x*=1-6*dt;v.z*=1-6*dt;v.y*=1-2.5*dt;if(r2>.12){p.x-=hx*3*dt;p.z-=hz*3*dt;}}
-  if(B.s==='fly'&&py>=RIM_Y&&p.y<RIM_Y&&v.y<0&&!st.cross)st.cross=[+(p.x-RIM.x).toFixed(3),+(p.z-RIM.z).toFixed(3)];
-  if(B.s==='fly'&&!st.scored&&py>=RIM_Y&&p.y<RIM_Y&&v.y<0&&r2<RIM_R-BR*.35)made();
-  if(p.y<FLOOR+BR){p.y=FLOOR+BR;if(v.y<0){const s=-v.y;if(s>.8&&st.bcd<=0){sfx.bounce(s);st.bcd=.06;}
-    if(B.s==='free'&&hand.ok){const top=Math.max(.15,holdPt().y-(FLOOR+BR)+.04);v.y=Math.sqrt(2*G*top);v.x*=.3;v.z=(hand.p.z-p.z)*1.2;}
-    else v.y=s>.5?s*.7:0;v.x*=.85;v.z*=.85;B.w*=.7;}}
+  const py=B.y;B.vy-=G*dt;B.x+=B.vx*dt;B.y+=B.vy*dt;
+  const front=rim.x-side*RIM_R,back=rim.x+side*RIM_R;
+  if(circleHit(front,rim.y,TUBE)||circleHit(back,rim.y,TUBE))st.tRim=true;
+  const bxp=rim.x+side*(RIM_R+.15);   // backboard plane
+  if(B.y>rim.y-.2&&B.y<rim.y+.85&&(B.x-bxp)*side>-BR&&(B.x-bxp)*side<.1){B.x=bxp-side*BR;if(B.vx*side>0){if(Math.abs(B.vx)>.8)sfx.board();B.vx=-B.vx*.6;}st.tBoard=true;}
+  const inX=Math.abs(B.x-rim.x)<RIM_R;
+  if(B.y<rim.y&&B.y>rim.y-.45&&inX){B.vx*=1-6*dt;B.vy*=1-2.5*dt;B.x+=(rim.x-B.x)*3*dt;}
+  if(B.s==='fly'&&py>=rim.y&&B.y<rim.y&&B.vy<0&&!st.cross)st.cross=+(B.x-rim.x).toFixed(3);
+  if(B.s==='fly'&&!st.scored&&py>=rim.y&&B.y<rim.y&&B.vy<0&&Math.abs(B.x-rim.x)<RIM_R-BR*.35)made();
+  if(B.y<BR){B.y=BR;if(B.vy<0){const s=-B.vy;if(s>.8&&st.bcd<=0){sfx.bounce(s);st.bcd=.06;}
+    const h=hands[B.hand];
+    if(B.s==='free'&&h.ok){B.vy=Math.sqrt(2*G*Math.max(.2,hp(B.hand).y-BR+.05));B.vx=(h.x-B.x)*2.5;}
+    else{B.vy=s>.5?s*.7:0;B.vx*=.85;}B.spin*=.7;}}
 }
 
-/* ===== hand tracking ===== */
-let lm=null,lastVT=-1,camFace='environment',stream=null;
-const LINKS=[[0,1,2,3,4],[0,5,6,7,8],[9,10,11,12],[13,14,15,16],[0,17,18,19,20],[5,9,13,17]];
-let cover={s:1,ox:0,oy:0,dw:1,dh:1};
-function calcCover(){const vw=vid.videoWidth||640,vh=vid.videoHeight||480,s=Math.max(W/vw,H/vh);cover={s,dw:vw*s,dh:vh*s,ox:(W-vw*s)/2,oy:(H-vh*s)/2};}
-const mir=()=>camFace==='user';
-const toS=l=>[cover.ox+(mir()?1-l.x:l.x)*cover.dw,cover.oy+l.y*cover.dh];
-
+/* ===== pose ===== */
+let lmk=null,lastVT=-1,stream=null,camOn=false;
+const BONES=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28],[27,31],[28,32],[15,19],[16,20]];
+let cover={ox:0,oy:0,dw:1,dh:1};
+function calcCover(){const vw=vid.videoWidth||640,vh=vid.videoHeight||480,s=Math.max(W/vw,H/vh);cover={dw:vw*s,dh:vh*s,ox:(W-vw*s)/2,oy:(H-vh*s)/2};}
+const toS=l=>({x:cover.ox+(1-l.x)*cover.dw,y:cover.oy+l.y*cover.dh,v:l.visibility==null?1:l.visibility});   // mirrored selfie view
 function detect(){
-  if(!lm||vid.readyState<2||vid.currentTime===lastVT)return;
-  lastVT=vid.currentTime;const now=performance.now();let r;
-  try{r=lm.detectForVideo(vid,now)}catch(e){return}
+  if(!lmk||vid.readyState<2||vid.currentTime===lastVT)return;
+  lastVT=vid.currentTime;let r;
+  try{r=lmk.detectForVideo(vid,performance.now())}catch(e){return}
   const L=r&&r.landmarks&&r.landmarks[0];
-  if(!L){if(hand.ok)hand.lostAt=st.now;hand.ok=false;hand.lm=null;hand.hist=[];return;}
-  calcCover();
-  handFromScreen(L.map(toS));
+  if(!L){lose();return;}
+  calcCover();processPose(L.map(toS));
 }
-function handFromScreen(S){
-  const now=st.now*1000;hand.lm=S;
-  const d=(a,b)=>Math.hypot(S[a][0]-S[b][0],S[a][1]-S[b][1]);
-  const size=Math.max(d(0,9),d(5,17)*1.3);
-  const cx=S[8][0],cy=S[8][1];/* index fingertip is the anchor */
-  hand.s=hand.ok?hand.s*.6+size*.4:size;
-  const depth=Math.max(.18,Math.min(1.4,F*PALM/hand.s));
-  const np=unproj(cx,cy,depth);
-  if(hand.ok)np.z=hand.p.z*.7+np.z*.3;
-  hand.p.copy(np);hand.ok=true;
-  hand.hist.push({t:now,x:np.x,y:np.y});while(hand.hist.length>2&&now-hand.hist[0].t>130)hand.hist.shift();
-  if(hand.hist.length>=2){const a=hand.hist[0],b=hand.hist[hand.hist.length-1],dt=(b.t-a.t)/1000;if(dt>.025){const vx=(b.x-a.x)/dt,vy=(b.y-a.y)/dt;if(Math.hypot(vx,vy)<7)hand.v.set(vx,vy,0);else{hand.hist=[b];hand.v.set(0,0,0);}}}
+function lose(){body.ok=false;body.lm=null;for(const i of [15,16]){hands[i].ok=false;hands[i].h=[];}}
+const ok=p=>p&&p.v>.5&&p.x>-20&&p.x<W+20&&p.y>-20&&p.y<H+20;
+function processPose(P){
+  body.lm=P;body.ok=ok(P[11])&&ok(P[12]);
+  if(!body.ok){lose();return;}
+  const sh={x:(P[11].x+P[12].x)/2,y:(P[11].y+P[12].y)/2};
+  const ank=ok(P[27])&&ok(P[28]),hip=ok(P[23])&&ok(P[24]);
+  body.full=ank;
+  let ppm=body.ppm,floor=body.floorY;
+  if(ank){const ay=Math.max(P[27].y,P[28].y),ax=(P[27].x+P[28].x)/2;ppm=Math.hypot(ax-sh.x,ay-sh.y)/TORSO_LEG;floor=ay+.07*ppm;}
+  else if(hip){const hy=(P[23].y+P[24].y)/2;ppm=Math.abs(hy-sh.y)/.5;floor=sh.y+TORSO_LEG*ppm+.07*ppm;}
+  body.ppm=body.ppm*.8+ppm*.2;body.floorY=body.floorY*.8+floor*.2;body.cx=W/2;
+  body.shoulderY=toPlane(0,sh.y).y;
+  layoutHoop();
+  const now=st.now*1000;
+  for(const [i,ix] of [[15,19],[16,20]]){
+    const w=P[i],f=P[ix],hd=hands[i];
+    if(!ok(w)){hd.ok=false;hd.h=[];continue;}
+    const sx=ok(f)?(w.x+f.x)/2:w.x,sy=ok(f)?(w.y+f.y)/2:w.y,q=toPlane(sx,sy);
+    hd.ok=true;hd.x=q.x;hd.y=q.y;hd.h.push({t:now,x:q.x,y:q.y});
+    while(hd.h.length>2&&now-hd.h[0].t>130)hd.h.shift();
+    if(hd.h.length>=2){const a=hd.h[0],b=hd.h[hd.h.length-1],dt=(b.t-a.t)/1000;
+      if(dt>.025){const vx=(b.x-a.x)/dt,vy=(b.y-a.y)/dt;if(Math.hypot(vx,vy)<12){hd.vx=vx;hd.vy=vy;}else{hd.h=[b];hd.vx=hd.vy=0;}}}
+  }
   gestures();
 }
 function gestures(){
-  if(B.s==='none'||(B.s!=='held'&&B.s!=='free'&&B.s!=='fly'))respawn();
-  const IDEAL=2.2/sens(),up=hand.v.y;
-  if(B.s==='held'&&st.cd<=0){
-    if(st.phase==='idle'){
-      if(up>1.0){st.upN=(st.upN||0)+1;if(st.upN>=2){st.phase='rise';st.peak=up;st.peakVx=hand.v.x;st.riseT=st.now;}}else st.upN=0;
-      if(up<-1.1)st.upN=0;
-      if(st.phase==='idle'&&up<-1.1){dribble();st.cd=.15;}
+  if(B.s==='none')respawn();
+  const IDEAL=3.0/sens();
+  if(B.s==='held'){
+    const h=hands[B.hand];if(!h.ok)return;const up=h.vy;
+    if(st.cd<=0&&st.phase==='idle'){
+      if(up>1.4){st.upN++;if(st.upN>=2){st.phase='rise';st.peak=up;st.pvx=h.vx;st.riseT=st.now;}}else st.upN=0;
+      if(st.phase==='idle'&&up<-1.3){st.upN=0;dribble();st.cd=.15;}
     }
-  }
-  if(st.phase==='rise'){
-    if(up>st.peak){st.peak=up;st.peakVx=hand.v.x;}
-    gauge(st.peak/IDEAL);
-    if(up<st.peak*.5||st.now-st.riseT>.4){
-      if(B.s==='held')shoot(Math.max(.4,Math.min(2,st.peak/IDEAL)),Math.atan2(st.peakVx,st.peak)*.3);
-      st.phase='idle';gauge(null);st.cd=.6;
+    if(st.phase==='rise'){
+      if(up>st.peak){st.peak=up;st.pvx=h.vx;}
+      gauge(st.peak/IDEAL);
+      if(up<st.peak*.5||st.now-st.riseT>.45){
+        if(h.y>body.shoulderY-.1){
+          // aim: how far the push leans toward (+) or away from (-) the hoop changes the angle a little
+          const lean=Math.atan2(st.pvx*side,st.peak);
+          shoot(Math.max(.4,Math.min(2,st.peak/IDEAL)),-lean*.15);
+        }
+        st.phase='idle';st.upN=0;gauge(null);st.cd=.6;
+      }
     }
   }
   if(B.s==='free'){
-    const hp=holdPt(),dx=B.p.x-hp.x,dy=B.p.y-hp.y,dz=(B.p.z-hp.z)*.4,dist=Math.hypot(dx,dy,dz);
-    if(dist<.14&&B.v.y>-1.2&&st.ccd<=0){attach();sfx.catch();st.ccd=.1;return;}
-    // slap: hand coming down onto the ball
-    if(Math.hypot(dx,dz)<.16&&hand.p.y>B.p.y&&hand.p.y-B.p.y<.28&&up<-.8&&B.v.y>up*1.2){B.v.y=up*1.35;B.v.x=hand.v.x*.4;B.fromDrib=true;}
+    for(const i of [B.hand,B.hand===15?16:15]){const h=hands[i];if(!h.ok)continue;
+      const p=hp(i),dx=B.x-p.x,dy=B.y-p.y,dist=Math.hypot(dx,dy);
+      if(dist<.2&&B.vy>-1.5&&st.ccd<=0){attach(i);sfx.catch();st.ccd=.1;return;}
+      if(Math.abs(B.x-h.x)<.2&&h.y>B.y&&h.y-B.y<.35&&h.vy<-.8&&B.vy>h.vy*1.2){B.vy=h.vy*1.35;B.vx=h.vx*.4;B.hand=i;B.fromDrib=true;}
+    }
   }
 }
 
 /* ===== drawing ===== */
 function drawVideo(c){
   if(vid.readyState<2)return;const{ox,oy,dw,dh}=cover;
-  if(mir()){c.save();c.translate(W,0);c.scale(-1,1);c.drawImage(vid,W-ox-dw,oy,dw,dh);c.restore();}
-  else c.drawImage(vid,ox,oy,dw,dh);
+  c.save();c.translate(W,0);c.scale(-1,1);c.drawImage(vid,W-ox-dw,oy,dw,dh);c.restore();
 }
-function handMask(){
-  fx.clearRect(0,0,W,H);
-  if(!hand.lm||B.s==='none')return;
-  const S=hand.lm,bp=proj(B.p);
-  // only bother when ball is near the hand on screen and not far behind it
-  let near=false;for(const q of S)if(Math.hypot(q[0]-bp[0],q[1]-bp[1])<bp[2]*1.6){near=true;break;}
-  if(!near)return;
-  fx.save();fx.lineCap='round';fx.lineJoin='round';
-  fx.fillStyle='#000';fx.strokeStyle='#000';fx.lineWidth=hand.s*.32;
-  fx.beginPath();for(const i of [0,1,2,5,9,13,17]){const q=S[i];i?fx.lineTo(q[0],q[1]):fx.moveTo(q[0],q[1]);}fx.closePath();fx.fill();
-  for(const ch of LINKS){fx.beginPath();ch.forEach((i,k)=>k?fx.lineTo(S[i][0],S[i][1]):fx.moveTo(S[i][0],S[i][1]));fx.stroke();}
-  fx.globalCompositeOperation='source-in';drawVideo(fx);fx.restore();
+function drawSkeleton(){
+  const P=body.lm;if(!P)return;
+  bx.save();bx.lineCap='round';bx.lineWidth=Math.max(3,body.ppm*.03);bx.strokeStyle='rgba(120,240,255,.85)';bx.shadowColor='#5ff';bx.shadowBlur=10;
+  bx.beginPath();for(const[a,b]of BONES){if(ok(P[a])&&ok(P[b])){bx.moveTo(P[a].x,P[a].y);bx.lineTo(P[b].x,P[b].y);}}bx.stroke();
+  bx.shadowBlur=0;bx.fillStyle='#fff';for(const i of [0,11,12,13,14,15,16,23,24,25,26,27,28])if(ok(P[i])){bx.beginPath();bx.arc(P[i].x,P[i].y,bx.lineWidth*.9,0,7);bx.fill();}
+  // floor line
+  if(body.full){bx.strokeStyle='rgba(255,255,255,.25)';bx.lineWidth=2;bx.setLineDash([10,10]);bx.beginPath();bx.moveTo(0,body.floorY);bx.lineTo(W,body.floorY);bx.stroke();bx.setLineDash([]);}
+  bx.restore();
 }
 
-/* ===== main loop ===== */
-let last=performance.now(),camOn=false;
-let testMode=false;
+/* ===== loop ===== */
+let last=performance.now(),testMode=false;
 function frame(t){
   requestAnimationFrame(frame);
   const dt=Math.min(.12,(t-last)/1000);last=t;
-  if(!testMode){
-    if(camOn){calcCover();bx.clearRect(0,0,W,H);drawVideo(bx);detect();}
-    update(dt);
-  }
+  if(camOn&&!testMode){calcCover();detect();}
+  if(!testMode)update(dt);
   render();
 }
 function update(dt){
   st.now+=dt;st.cd-=dt;st.bcd-=dt;st.ccd-=dt;
+  if(st.count>0){st.count-=dt;const n=Math.ceil(st.count);$('cd').textContent=st.count>0?n:'';if(st.count<=0){st.run=true;sfx.beep(990);}else if(Math.ceil(st.count+dt)!==n)sfx.beep(660);}
   if(st.run&&st.mode==='60'){st.time-=dt;if(st.time<=0){st.time=0;endGame();}$('timer').textContent=Math.ceil(st.time);}
-  // ball update
-  if(B.s==='held'){
-    if(hand.ok){const tp=holdPt();B.p.lerp(tp,1-Math.exp(-40*dt));B.ax.set(0,1,0);B.w=9;}
-    else if(st.now-hand.lostAt>.5){B.s='free';B.v.set(0,0,0);}
+  if(B.s==='held'){const h=hands[B.hand];
+    if(h.ok){const p=hp(B.hand),k=1-Math.exp(-35*dt);B.x+=(p.x-B.x)*k;B.y+=(p.y-B.y)*k;B.spin=0;}
+    else{B.s='free';B.vx=B.vy=0;}
   }else if(B.s==='free'||B.s==='fly'){
     const n=Math.ceil(dt/.004);for(let i=0;i<n;i++)step(dt/n);
-    if(B.s==='fly'){st.flightT+=dt;
-      if((st.scored&&st.flightT>1.4)||st.flightT>3.5||(B.p.y<=FLOOR+BR+.01&&B.v.length()<.4)){if(!st.scored)missed();B.s='none';}}
-    else{const resting=B.p.y<=FLOOR+BR+.01&&Math.abs(B.v.y)<.3;B.rest=resting?B.rest+dt:0;
-      if(B.rest>.8||(!hand.ok&&st.now-hand.lostAt>2.5)){B.s='none';B.rest=0;}}
+    if(B.s==='fly'){st.flightT+=dt;const[sx]=toScreen(B.x,B.y);
+      if((st.scored&&st.flightT>1.3)||st.flightT>3.5||(B.y<=BR+.01&&Math.abs(B.vy)<.4)||sx<-200||sx>W+200){if(!st.scored)missed();B.s='none';}}
+    else{const resting=B.y<=BR+.01&&Math.abs(B.vy)<.3;B.rest=resting?B.rest+dt:0;
+      if(B.rest>.8||!hands[B.hand].ok&&!hands[B.hand===15?16:15].ok){B.rest+=dt;if(B.rest>1.5){B.s='none';B.rest=0;}}}
   }
-  if(B.s==='none'&&hand.ok)respawn();
-  if(B.w)ballM.rotateOnWorldAxis(B.ax,B.w*dt);
-  B.pop=Math.max(0,B.pop-dt);
-  updNet(dt);
+  if(B.s==='none'&&(hands[15].ok||hands[16].ok))respawn();
+  B.rot+=B.spin*dt;B.pop=Math.max(0,B.pop-dt);updNet(dt);
 }
 function render(){
-  ballM.scale.setScalar(Math.max(.3,1-B.pop*1.6));ballM.position.copy(B.p);ballM.visible=B.s!=='none';
+  bx.clearRect(0,0,W,H);
+  if(camOn){drawVideo(bx);drawSkeleton();}
+  const s=s3();
+  hoop.position.copy(to3(rim.x,rim.y));hoop.scale.setScalar(s);
+  ballM.position.copy(to3(B.x,B.y));ballM.scale.setScalar(BR*s*Math.max(.3,1-B.pop*1.6));ballM.rotation.z=B.rot;ballM.visible=B.s!=='none';
   ren.render(scene,cam);
-  handMask();
-  // hints
   if(!camOn)return;
-  if(!hand.ok)hint('把左手食指伸到鏡頭前',true);
-  else if(B.s==='held')hint('往下拍＝運球　快速往上推＝投籃');
-  else if(B.s==='free')hint('手放在原處接球，或往下拍繼續運');
+  if(!body.ok)hint('退後，讓全身入鏡',true);
+  else if(!body.full)hint('再退後一點，腳也要入鏡',true);
+  else if(!hands[15].ok&&!hands[16].ok)hint('把手露出來',true);
+  else if(B.s==='held')hint('手往下拍＝運球　快速往上推過頭＝投籃');
+  else if(B.s==='free')hint('手放回去接球，或往下拍繼續運');
   else if(B.s==='fly')hint('…');
 }
 requestAnimationFrame(frame);
 
-/* ===== test hook: fake hand (no camera) ===== */
-function fakeLM(cx,cy,sz){const P=[[0,.5],[-.25,.35],[-.4,.15],[-.5,-.05],[-.6,-.2],[-.35,-.45],[-.38,-.75],[-.4,-.95],[-.42,-1.1],[-.05,-.5],[-.06,-.85],[-.07,-1.05],[-.08,-1.2],[.22,-.45],[.24,-.78],[.25,-.98],[.26,-1.1],[.42,-.35],[.46,-.6],[.48,-.75],[.5,-.88]];return P.map(p=>[cx+p[0]*sz,cy+p[1]*sz]);}
+/* ===== test hook: fake body (no camera) ===== */
+function fakePose(cx,footY,heightPx,lh,rh){
+  const u=heightPx/1.7,P=[];for(let i=0;i<33;i++)P.push({x:cx,y:footY-u*1.0,v:.2});
+  const s=(i,dx,hy)=>{P[i]={x:cx+dx*u,y:footY-hy*u,v:.99};};
+  s(0,0,1.6);s(11,-.2,1.42);s(12,.2,1.42);s(13,-.28,1.15);s(14,.28,1.15);s(23,-.12,.92);s(24,.12,.92);s(25,-.12,.5);s(26,.12,.5);s(27,-.12,.07);s(28,.12,.07);s(31,-.15,0);s(32,.15,0);
+  P[15]={x:lh[0],y:lh[1],v:.99};P[19]={x:lh[0],y:lh[1]-u*.08,v:.99};P[16]={x:rh[0],y:rh[1],v:.99};P[20]={x:rh[0],y:rh[1]-u*.08,v:.99};
+  return P;}
 window.__AH={
-  start(mode){camOn=true;Object.assign(st,{mode:mode||'free',run:true,score:0,made:0,shots:0,streak:0,time:60,phase:'idle'});B.s='none';hud();$('start').classList.add('hide');},
-  hand(cx,cy,sz){handFromScreen(fakeLM(cx,cy,sz));},
-  test(on){testMode=on;},step(dt){update(dt);},
-  lose(){if(hand.ok)hand.lostAt=st.now;hand.ok=false;hand.lm=null;hand.hist=[];},
-  dist(i){distI=i;placeHoop();},
-  info(){return {W,H,F,PALM,s:B.s,score:st.score,made:st.made,shots:st.shots,phase:st.phase,bp:B.p.toArray().map(v=>+v.toFixed(3)),hp:hand.p.toArray().map(v=>+v.toFixed(3)),hv:hand.v.toArray().map(v=>+v.toFixed(2)),lastDrib:st.lastDrib,now:st.now,sens:sens(),cross:st.cross,k:st.lastK,lat:st.lastLat,rim:st.tRim,board:st.tBoard};}
+  start(mode){camOn=true;Object.assign(st,{mode:mode||'free',run:true,score:0,made:0,shots:0,streak:0,time:60,phase:'idle',count:0});B.s='none';hud();$('start').classList.add('hide');},
+  pose(cx,footY,hpx,lh,rh){processPose(fakePose(cx,footY,hpx,lh,rh));},
+  lose(){lose();},test(on){testMode=on;},step(dt){update(dt);},side(v){side=v;layoutHoop();},
+  info(){return {W,H,ppm:+body.ppm.toFixed(1),floorY:+body.floorY.toFixed(1),rim:[+rim.x.toFixed(2),+rim.y.toFixed(2)],s:B.s,hand:B.hand,b:[+B.x.toFixed(3),+B.y.toFixed(3)],score:st.score,made:st.made,shots:st.shots,phase:st.phase,now:st.now,cross:st.cross,k:st.lastK,rimHit:st.tRim,board:st.tBoard,h16:[+hands[16].x.toFixed(2),+hands[16].y.toFixed(2),+hands[16].vy.toFixed(2)]};}
 };
 
 /* ===== camera ===== */
 async function openCam(){
   if(!window.isSecureContext||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('https');
   if(stream)stream.getTracks().forEach(x=>x.stop());
-  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:camFace},width:{ideal:1280},height:{ideal:720}},audio:false});
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:false});
   vid.srcObject=stream;try{await Promise.race([vid.play(),new Promise(r=>setTimeout(r,3000))])}catch(e){}lastVT=-1;
 }
-async function loadLM(){
-  if(lm)return;
+async function loadModel(){
+  if(lmk)return;
   for(let i=0;i<40&&!vision;i++)await new Promise(r=>setTimeout(r,250));
   if(!vision)throw new Error('vision');
   const fs=await vision.FilesetResolver.forVisionTasks(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${V}/wasm`);
-  const o=d=>({baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:d},runningMode:'VIDEO',numHands:1,minHandDetectionConfidence:.5,minTrackingConfidence:.5});
+  const o=d=>({baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',delegate:d},runningMode:'VIDEO',numPoses:1,minPoseDetectionConfidence:.5,minTrackingConfidence:.5});
   const tmo=(p,ms)=>Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),ms))]);
-  try{lm=await tmo(vision.HandLandmarker.createFromOptions(fs,o('GPU')),8000)}catch(e){msg('改用相容模式載入中…');lm=await tmo(vision.HandLandmarker.createFromOptions(fs,o('CPU')),25000)}
+  try{lmk=await tmo(vision.PoseLandmarker.createFromOptions(fs,o('GPU')),8000)}catch(e){msg('改用相容模式載入中…');lmk=await tmo(vision.PoseLandmarker.createFromOptions(fs,o('CPU')),25000)}
 }
 async function begin(mode){
-  audio();msg('開啟鏡頭中…');
+  audio();msg('開啟自拍鏡頭中…');
   try{await openCam()}catch(e){msg(e.message==='https'?'鏡頭需要 https 網址才能開。':'無法開啟鏡頭，請在瀏覽器允許相機權限。');return;}
-  msg('載入手部辨識中…（第一次約 5–10 秒）');
-  try{await loadLM()}catch(e){msg(e.message==='vision'?'手部辨識模組下載失敗，請確認網路後重新整理。':'手部辨識啟動失敗（'+e.message+'），請重新整理再試一次。');return;}
+  msg('載入骨架辨識中…（第一次約 5–10 秒）');
+  try{await loadModel()}catch(e){msg(e.message==='vision'?'骨架辨識模組下載失敗，請確認網路後重新整理。':'骨架辨識啟動失敗（'+e.message+'），請重新整理再試一次。');return;}
   msg('');camOn=true;
-  Object.assign(st,{mode,run:true,score:0,made:0,shots:0,streak:0,time:60,phase:'idle'});B.s='none';hud();
+  Object.assign(st,{mode,run:mode!=='60',score:0,made:0,shots:0,streak:0,time:60,phase:'idle',count:mode==='60'?5:0});B.s='none';hud();
   $('tlab').textContent=mode==='60'?'剩餘秒數':'練習';
   $('start').classList.add('hide');$('end').classList.add('hide');
-  try{if(document.documentElement.requestFullscreen&&!document.fullscreenElement)document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{})}catch(e){}
 }
 function endGame(){
   st.run=false;sfx.buzz();
-  if(st.score>best){best=st.score;try{localStorage.setItem('airhoops-ar-best',best)}catch(e){}}
+  if(st.score>best){best=st.score;try{localStorage.setItem('airhoops-body-best',best)}catch(e){}}
   $('fscore').textContent=st.score;const pct=st.shots?Math.round(st.made/st.shots*100):0;
   $('fstat').textContent=`${st.made} / ${st.shots} 投 · 命中率 ${pct}% · 最佳 ${best} 分`;$('end').classList.remove('hide');
 }
 
-/* ===== menu wiring ===== */
+/* ===== menu ===== */
 function seg(id,fn){const el=$(id);el.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;el.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));fn(b.dataset.v);});}
-seg('segCam',v=>{camFace=v;});
-seg('segDist',v=>{distI=+v;placeHoop();});
+seg('segSide',v=>{side=+v;layoutHoop();});
 $('b60').addEventListener('click',()=>begin('60'));
 $('bfree').addEventListener('click',()=>begin('free'));
 $('again').addEventListener('click',()=>begin('60'));
 $('home').addEventListener('click',()=>{$('end').classList.add('hide');$('start').classList.remove('hide');showBest();st.run=false;});
 $('pMenu').addEventListener('click',()=>{st.run=false;$('start').classList.remove('hide');showBest();});
-$('pDist').addEventListener('click',()=>{distI=(distI+1)%3;placeHoop();$('segDist').querySelectorAll('button').forEach(x=>x.classList.toggle('on',+x.dataset.v===distI));});
-$('pFlip').addEventListener('click',async()=>{camFace=camFace==='user'?'environment':'user';$('segCam').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.v===camFace));if(camOn){try{await openCam()}catch(e){}}});
+$('pSide').addEventListener('click',()=>{side=-side;layoutHoop();$('segSide').querySelectorAll('button').forEach(x=>x.classList.toggle('on',+x.dataset.v===side));});
+layoutHoop();
 </script>
 </body>
 </html>

@@ -1,0 +1,2 @@
+# 申請到 AdSense 後，把 pub-0000000000000000 換成你的發布商 ID，然後刪掉這行註解
+google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
